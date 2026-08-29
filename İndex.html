@@ -192,6 +192,9 @@ function toast(msg, type) {
   clearTimeout(window._toastTimer);
   window._toastTimer = setTimeout(() => { el.style.display = 'none'; }, 3000);
 }
+const CLIENT_ID = "01M15ZM2GVKJTEW8GPDHR76ZVX";
+const CLIENT_SECRET = "0c3df1b79afb945f58302994ada17af91e23202a5b5d403c29d8917f7dcaf809";
+const REDIRECT_URI = "https://osman707c.github.io/";
 
 function base64url(buf) {
   return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
