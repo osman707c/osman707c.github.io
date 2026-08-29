@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Kick Mod Panel Pro (Mobile)</title>
+<script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
+<style>
+  :root {
+    --accent: #53fc18;
+    --accent-hover: #45db12;
+    --bg-main: #0a0a0b;
+    --bg-sec: #141416;
+    --bg-card: #1c1c1f;
+    --border: #26262a;
+    --text-main: #f2f2f2;
+    --text-sec: #9c9ca3;
+    --danger: #ff4747;
+    --danger-hover: #d63c3c;
+    --warn: #f7a600;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg-main); }
+  ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+
+  html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg-main); color: var(--text-main); overflow: hidden; }
+  #app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+
+  #header { background: var(--bg-sec); border-bottom: 1px solid var(--border); padding: 12px; flex-shrink: 0; }
+  #header h1 { font-size: 17px; margin: 0 0 10px 0; display:flex; align-items:center; justify-content:space-between; }
+  .kick-logo { color: var(--accent); font-weight: 900; }
+  #gearBtn { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-sec); font-size: 18px; padding: 6px 10px; border-radius: 8px; }
+  
+  #loginRow button { width: 100%; padding: 14px; border-radius: 10px; border: none; background: var(--accent); color: #000; font-weight: 800; font-size: 16px; }
+  #connectForm { display: flex; flex-direction: column; gap: 8px; }
+  #connectForm input { padding: 12px; border-radius: 10px; border: 1px solid #333; background: var(--bg-main); color: #fff; font-size: 15px; }
+  #connectForm button { padding: 12px; border-radius: 10px; border: none; background: var(--accent); color: #000; font-weight: 800; }
+  
+  #recentChips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+  #recentChips button { background: var(--bg-card); color: var(--text-sec); border: 1px solid var(--border); border-radius: 16px; padding: 6px 12px; font-size: 12px; }
+  
+  #connectedBar { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: var(--text-sec); background: var(--bg-card); padding: 8px 12px; border-radius: 8px; }
+  #connectedBar b { color: var(--accent); }
+  #connectedBar button { background: var(--danger); color: #fff; border: none; border-radius: 6px; padding: 6px 10px; font-size: 12px; font-weight: bold; }
+  
+  .hidden { display: none !important; }
+
+  #chatFeed { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+  .msg { background: transparent; border-radius: 8px; padding: 6px; font-size: 14.5px; line-height: 1.4; border-left: 3px solid transparent; }
+  .msg.mention { border-left-color: var(--warn); background: rgba(247, 166, 0, 0.12); }
+  .msg.automod { border-left-color: var(--danger); background: rgba(255, 71, 71, 0.12); }
+  .msg .timestamp { font-size: 11px; color: #666; margin-right: 4px; }
+  .msg .uname { font-weight: 800; color: var(--accent); margin-right: 4px; }
+  .msg .txt { color: #e5e5e8; word-break: break-word; }
+  .msg .txt a { color: #7cc4f7; }
+  .emote-img { height: 22px; vertical-align: middle; }
+
+  #inputBar { flex-shrink: 0; border-top: 1px solid var(--border); background: var(--bg-sec); padding: 10px; }
+  #replyPreview { display: flex; justify-content: space-between; align-items: center; background: #1c2733; border-radius: 6px; padding: 6px 10px; margin-bottom: 6px; font-size: 12px; color: #7cc4f7; }
+  #replyPreview button { background: none; border: none; color: #7cc4f7; font-size: 16px; }
+  #sendRow { display: flex; gap: 6px; }
+  #sendRow input { flex: 1; padding: 12px; border-radius: 20px; border: 1px solid #333; background: var(--bg-main); color: #fff; font-size: 15px; }
+  #sendRow button.sendBtn { background: var(--accent); color: #000; border: none; border-radius: 20px; padding: 0 16px; font-weight: 800; }
+  #emoteBtn { background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border); border-radius: 50%; width: 42px; height: 42px; font-size: 18px; flex-shrink: 0; }
+
+  #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(2px); display: flex; align-items: flex-end; z-index: 50; }
+  #sheet { background: var(--bg-sec); width: 100%; max-height: 80vh; overflow-y: auto; border-radius: 16px 16px 0 0; padding: 16px; border-top: 1px solid #2a2a2e; }
+  #sheet h3 { margin: 0 0 12px 0; font-size: 16px; color: var(--accent); }
+  #sheet .opt { width: 100%; text-align: left; background: var(--bg-card); border: 1px solid var(--border); color: #fff; padding: 12px; border-radius: 8px; margin-bottom: 8px; font-size: 14px; font-weight: 600; }
+  #sheet .opt.danger { color: var(--danger); }
+  
+  #sheet .customRow { display: flex; gap: 6px; margin-bottom: 8px; }
+  #sheet .customRow input { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #333; background: var(--bg-main); color: #fff; }
+  #sheet .customRow button { background: var(--warn); color: #000; border: none; border-radius: 8px; padding: 0 14px; font-weight: 800; }
+  #sheetCancel { width: 100%; padding: 12px; background: #2a2a2e; color: #fff; border: none; border-radius: 8px; margin-top: 4px; font-weight: bold; }
+
+  .emoteGrid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+  .emoteGrid img { width: 100%; border-radius: 6px; background: var(--bg-card); padding: 4px; }
+
+  .settingSection { margin-bottom: 16px; background: var(--bg-card); padding: 12px; border-radius: 10px; }
+  .settingSection h4 { margin: 0 0 8px 0; font-size: 13px; color: var(--text-sec); }
+  .toggleRow { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .switch { width: 44px; height: 24px; background: #333; border-radius: 12px; position: relative; border: none; flex-shrink:0; }
+  .switch.on { background: var(--accent); }
+  .switch .dot { position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; background: #fff; border-radius: 50%; transition: 0.2s; }
+  .switch.on .dot { left: 22px; }
+
+  .quick-actions { display: flex; gap: 6px; margin-top: 8px; }
+  .quick-actions button { flex: 1; padding: 8px; border-radius: 6px; border: none; font-weight: bold; font-size: 12px; }
+  .btn-logout { background: #3a1616; color: #ff7b7b; }
+  .btn-clear { background: #1c2733; color: #7cc4f7; }
+  .btn-export { background: #2a2210; color: #f7a600; }
+
+  #toast { position: fixed; bottom: 85px; left: 50%; transform: translateX(-50%); background: var(--bg-card); border: 1px solid var(--border); padding: 10px 16px; border-radius: 20px; font-size: 13px; z-index: 60; display: none; max-width: 90%; text-align: center; }
+  #toast.ok { color: var(--accent); border-color: var(--accent); }
+  #toast.err { color: var(--danger); border-color: var(--danger); }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="header">
+    <h1>
+      <span><span class="kick-logo">KICK</span> Mod Panel</span>
+      <button id="gearBtn" onclick="openSettings()">⚙️</button>
+    </h1>
+
+    <div id="loginRow">
+      <button onclick="login()">Kick ile Giriş Yap</button>
+    </div>
+
+    <div id="connectForm" class="hidden">
+      <input id="channelSlug" placeholder="Kanal Kullanıcı Adı">
+      <input id="myUsername" placeholder="Kendi Kullanıcı Adın">
+      <button onclick="connectChat()">Chat'e Bağlan</button>
+      <div id="recentChips"></div>
+    </div>
+
+    <div id="connectedBar" class="hidden">
+      <span>🟢 <b id="connectedName"></b> izleniyor</span>
+      <button onclick="disconnectChat()">Bağlantıyı Kes</button>
+    </div>
+
+    <div id="quickActions" class="quick-actions hidden">
+      <button class="btn-clear" onclick="clearChat()">🧹 Temizle</button>
+      <button class="btn-export" onclick="exportChat()">💾 Log İndir</button>
+      <button class="btn-logout" onclick="logout()">🚪 Çıkış</button>
+    </div>
+  </div>
+
+  <div id="chatFeed"></div>
+
+  <div id="inputBar" class="hidden">
+    <div id="replyPreview" class="hidden">
+      <span id="replyText"></span>
+      <button onclick="cancelReply()">✕</button>
+    </div>
+    <div id="sendRow">
+      <button id="emoteBtn" onclick="openEmotePicker()">😀</button>
+      <input id="msgInput" placeholder="Mesaj yaz..." onkeydown="if(event.key==='Enter') sendMessage()">
+      <button class="sendBtn" onclick="sendMessage()">Gönder</button>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+  // KICK API BİLGİLERİNİ GİRİN
+  const CLIENT_ID = "BURAYA_CLIENT_ID_YAPISTIR";
+  const CLIENT_SECRET = "BURAYA_CLIENT_SECRET_YAPISTIR";
+  const REDIRECT_URI = "https://osman707c.github.io/"; 
+  const PUSHER_KEY = "32cbd69e4b950bf97679";
+  const PUSHER_CLUSTER = "us2";
+</script>
+
+<script>
+const TOKEN_KEY = "kick_mod_panel_token";
+const VERIFIER_KEY = "kick_mod_panel_verifier";
+const RECENT_KEY = "kick_mod_panel_recent";
+const SETTINGS_KEY = "kick_mod_panel_settings";
+
+let broadcasterId = null;
+let broadcasterSlug = null;
+let myUsername = "";
+let replyTarget = null;
+let currentSheetUser = null;
+let pusherChannel = null;
+let channelEmotes = [];
+
+let settings = loadSettings();
+function loadSettings() {
+  const defaultSettings = { showEmotes: true, autoModOn: true, bannedWords: [], showTimestamps: true };
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (raw) return { ...defaultSettings, ...JSON.parse(raw) };
+  } catch(e) {}
+  return defaultSettings;
+}
+function saveSettings() {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+}
+
+function toast(msg, type) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = type;
+  el.style.display = 'block';
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => { el.style.display = 'none'; }, 3000);
+}
+
+function base64url(buf) {
+  return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+async function sha256(str) { return await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str)); }
+function randomString(len) {
+  const arr = new Uint8Array(len);
+  crypto.getRandomValues(arr);
+  return base64url(arr.buffer);
+}
+
+async function login() {
+  const verifier = randomString(64);
+  localStorage.setItem(VERIFIER_KEY, verifier);
+  const challenge = base64url(await sha256(verifier));
+  const params = new URLSearchParams({
+    client_id: CLIENT_ID,
+    redirect_uri: REDIRECT_URI,
+    response_type: "code",
+    scope: "user:read channel:read moderation:ban chat:write",
+    code_challenge: challenge,
+    code_challenge_method: "S256",
+    state: "modpanel"
+  });
+  window.location.href = "https://id.kick.com/oauth/authorize?" + params.toString();
+}
+
+// CORS ve Proxy Çözümlü Token Alma Fonksiyonu
+async function exchangeCodeForToken(code) {
+  const verifier = localStorage.getItem(VERIFIER_KEY);
+  const params = new URLSearchParams({
+    grant_type: "authorization_code",
+    client_id: CLIENT_ID,
+    client_secret: CLIENT_SECRET,
+    redirect_uri: REDIRECT_URI,
+    code: code,
+    code_verifier: verifier || ""
+  });
+
+  try {
+    // CORS Engeli için Proxy Yönlendirmesi
+    const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent("https://id.kick.com/oauth/token");
+    const res = await fetch(proxyUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: params.toString()
+    });
+    
+    const data = await res.json();
+    if (data.access_token) {
+      localStorage.setItem(TOKEN_KEY, data.access_token);
+      return true;
+    }
+  } catch(e) {
+    toast("Bağlantı Hatası: CORS veya Yetki", "err");
+  }
+  return false;
+}
+
+async function getUserIdBySlug(slug) {
+  const token = localStorage.getItem(TOKEN_KEY);
+  if (!token) throw new Error("Giriş Yapılmadı.");
+
+  const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent("https://api.kick.com/public/v1/channels?slug=" + encodeURIComponent(slug));
+  const res = await fetch(proxyUrl, {
+    headers: { "Authorization": "Bearer " + token }
+  });
+
+  if (res.status === 401) throw new Error("Oturum süresi doldu, tekrar giriş yap.");
+  const data = await res.json().catch(() => ({}));
+  if (data.data && data.data.length > 0) return data.data[0].broadcaster_user_id;
+  throw new Error("Kullanıcı bulunamadı.");
+}
+
+function showLoggedInUI() {
+  document.getElementById('loginRow').classList.add('hidden');
+  document.getElementById('connectForm').classList.remove('hidden');
+  document.getElementById('quickActions').classList.remove('hidden');
+  renderRecentChips();
+}
+
+function logout() {
+  localStorage.removeItem(TOKEN_KEY);
+  location.reload();
+}
+
+function getRecent() { try { return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]"); } catch(e) { return []; } }
+function addRecent(slug) {
+  let list = getRecent().filter(s => s !== slug);
+  list.unshift(slug);
+  localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, 5)));
+}
+function renderRecentChips() {
+  document.getElementById('recentChips').innerHTML = getRecent().map(s => `<button onclick="quickConnect('${s}')">${escapeHtml(s)}</button>`).join('');
+}
+function quickConnect(slug) { document.getElementById('channelSlug').value = slug; connectChat(); }
+
+async function connectChat() {
+  const slug = document.getElementById('channelSlug').value.trim();
+  myUsername = document.getElementById('myUsername').value.trim().toLowerCase();
+  if (!slug) { toast("Kanal adını yazın.", "err"); return; }
+  toast("Bağlanılıyor...", "ok");
+
+  try {
+    broadcasterId = await getUserIdBySlug(slug);
+    broadcasterSlug = slug;
+
+    const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent("https://kick.com/api/v2/channels/" + encodeURIComponent(slug));
+    const infoRes = await fetch(proxyUrl);
+    const info = await infoRes.json();
+    const chatroomId = info.chatroom?.id;
+
+    const pusher = new Pusher(PUSHER_KEY, { cluster: PUSHER_CLUSTER });
+    pusherChannel = pusher.subscribe("chatrooms." + chatroomId + ".v2");
+    pusherChannel.bind("App\\Events\\ChatMessageEvent", function(raw) {
+      let data = raw;
+      if (typeof raw === "string") { try { data = JSON.parse(raw); } catch(e) { return; } }
+      addChatMessage(data);
+    });
+
+    addRecent(slug);
+    document.getElementById('connectForm').classList.add('hidden');
+    document.getElementById('connectedBar').classList.remove('hidden');
+    document.getElementById('connectedName').textContent = slug;
+    document.getElementById('inputBar').classList.remove('hidden');
+    toast("✅ Bağlandı: " + slug, "ok");
+  } catch (e) { toast(e.message, "err"); }
+}
+
+function disconnectChat() { location.reload(); }
+
+function escapeHtml(str) { return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+function renderMessageContent(content) {
+  let safe = escapeHtml(content);
+  safe = safe.replace(/\[emote:(\d+):([^\]]+)\]/g, (m, id, name) => `<img class="emote-img" src="https://files.kick.com/emotes/${id}/fullsize" alt="${name}">`);
+  return safe;
+}
+
+function addChatMessage(data) {
+  const feed = document.getElementById('chatFeed');
+  const username = (data.sender && data.sender.username) || "bilinmeyen";
+  const userId = data.sender && data.sender.id;
+  const content = data.content || "";
+  const msgId = data.id || data.message_id || "";
+  const isMention = myUsername && content.toLowerCase().includes(myUsername);
+  const timeString = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+
+  const div = document.createElement('div');
+  div.className = 'msg' + (isMention ? ' mention' : '');
+  
+  let html = `<span class="timestamp">[${timeString}]</span>`;
+  html += `<span class="uname" onclick='openSheet(${userId}, ${JSON.stringify(username)}, ${JSON.stringify(msgId)})'>${escapeHtml(username)}:</span>`;
+  html += `<span class="txt">${renderMessageContent(content)}</span>`;
+  
+  div.innerHTML = html;
+  feed.appendChild(div);
+  feed.scrollTop = feed.scrollHeight;
+  while (feed.children.length > 150) feed.removeChild(feed.firstChild);
+}
+
+function clearChat() { document.getElementById('chatFeed').innerHTML = ''; toast("Temizlendi", "ok"); }
+function exportChat() {
+  let log = "";
+  document.querySelectorAll('.msg').forEach(m => { log += m.innerText + '\n'; });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([log], { type: 'text/plain' }));
+  a.download = `kick_log.txt`;
+  a.click();
+}
+
+function openSheet(userId, username, msgId) {
+  currentSheetUser = { id: userId, username: username, msgId: msgId };
+  const overlay = document.createElement('div');
+  overlay.id = 'overlay';
+  overlay.onclick = (e) => { if (e.target.id === 'overlay') closeSheet(); };
+  overlay.innerHTML = `
+    <div id="sheet">
+      <h3>Kullanıcı: ${escapeHtml(username)}</h3>
+      <button class="opt" onclick="startReply()">↩️ Yanıtla</button>
+      <button class="opt" onclick="quickTimeout(10)">⏱️ 10dk Timeout</button>
+      <button class="opt danger" onclick="quickBan()">🚫 Banla</button>
+      <button id="sheetCancel" onclick="closeSheet()">Kapat</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+function closeSheet() { const o = document.getElementById('overlay'); if (o) o.remove(); }
+
+async function quickTimeout(min) { await doModAction('timeout', min); closeSheet(); }
+async function quickBan() { await doModAction('ban', null); closeSheet(); }
+
+function startReply() {
+  replyTarget = { id: currentSheetUser.msgId, username: currentSheetUser.username };
+  document.getElementById('replyPreview').classList.remove('hidden');
+  document.getElementById('replyText').textContent = "↩️ Yanıtlanan: " + currentSheetUser.username;
+  closeSheet();
+}
+function cancelReply() { replyTarget = null; document.getElementById('replyPreview').classList.add('hidden'); }
+
+async function doModAction(type, durationMin) {
+  const token = localStorage.getItem(TOKEN_KEY);
+  const bodyObj = { broadcaster_user_id: broadcasterId, user_id: currentSheetUser.id };
+  if (type === 'timeout') bodyObj.duration = durationMin;
+
+  const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent("https://api.kick.com/public/v1/moderation/bans");
+  const res = await fetch(proxyUrl, {
+    method: "POST",
+    headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+    body: JSON.stringify(bodyObj)
+  });
+  if (res.ok) toast("İşlem Başarılı", "ok");
+  else toast("Yetki Hatası", "err");
+}
+
+async function sendMessage() {
+  const input = document.getElementById('msgInput');
+  const text = input.value.trim();
+  if (!text || !broadcasterId) return;
+
+  const token = localStorage.getItem(TOKEN_KEY);
+  const bodyObj = { broadcaster_user_id: broadcasterId, content: text, type: "user" };
+  if (replyTarget) bodyObj.reply_to_message_id = replyTarget.id;
+
+  const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent("https://api.kick.com/public/v1/chat");
+  const res = await fetch(proxyUrl, {
+    method: "POST",
+    headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+    body: JSON.stringify(bodyObj)
+  });
+  if (res.ok) { input.value = ""; cancelReply(); }
+  else toast("Mesaj Atılamadı", "err");
+}
+
+function openSettings() {
+  const overlay = document.createElement('div');
+  overlay.id = 'overlay';
+  overlay.onclick = (e) => { if (e.target.id === 'overlay') closeSheet(); };
+  overlay.innerHTML = `
+    <div id="sheet">
+      <h3>Mobil Ayarlar</h3>
+      <div class="settingSection">
+        <div class="toggleRow">
+          <span>Saatleri Göster</span>
+          <button class="switch ${settings.showTimestamps?'on':''}" onclick="toggleSetting('showTimestamps', this)"><div class="dot"></div></button>
+        </div>
+      </div>
+      <button id="sheetCancel" onclick="closeSheet()">Tamam</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+function toggleSetting(k, btn) { settings[k] = !settings[k]; saveSettings(); btn.classList.toggle('on'); }
+
+(async function init() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  if (code) {
+    const ok = await exchangeCodeForToken(code);
+    window.history.replaceState({}, document.title, REDIRECT_URI);
+    if (ok) showLoggedInUI();
+  } else if (localStorage.getItem(TOKEN_KEY)) {
+    showLoggedInUI();
+  }
+})();
+</script>
+</body>
+</html>
