@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Kick Mod Panel</title>
+<script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #0e0e10;
+    color: #f5f5f5;
+    padding: 16px;
+    padding-bottom: 60px;
+  }
+  h1 { font-size: 20px; display: flex; align-items: center; gap: 8px; }
+  h2 { font-size: 15px; color: #a1a1aa; margin: 0 0 10px 0; }
+  .kick-logo { color: #53fc18; font-weight: 900; }
+  .card {
+    background: #18181b;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+    border: 1px solid #2a2a2e;
+  }
+  label { display: block; font-size: 13px; color: #a1a1aa; margin-bottom: 6px; margin-top: 12px; }
+  input {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #3a3a3e;
+    background: #0e0e10;
+    color: #fff;
+    font-size: 16px;
+  }
+  button {
+    width: 100%;
+    padding: 14px;
+    border-radius: 8px;
+    border: none;
+    font-weight: 700;
+    font-size: 15px;
+    margin-top: 12px;
+    cursor: pointer;
+  }
+  .btn-login { background: #53fc18; color: #000; }
+  .btn-ban { background: #e0245e; color: #fff; }
+  .btn-timeout { background: #f7a600; color: #000; }
+  .btn-unban { background: #2b90d9; color: #fff; }
+  .btn-secondary { background: #2a2a2e; color: #fff; }
+  .btn-connect { background: #53fc18; color: #000; }
+  .status { margin-top: 12px; padding: 10px; border-radius: 8px; font-size: 14px; display: none; }
+  .status.ok { background: #16321c; color: #7ee787; display: block; }
+  .status.err { background: #3a1616; color: #ff7b7b; display: block; }
+  .status.info { background: #1c2733; color: #7cc4f7; display: block; }
+  .user-badge { display: flex; align-items: center; gap: 10px; font-size: 14px; color: #a1a1aa; }
+  .hidden { display: none; }
+  .row { display: flex; gap: 10px; }
+  .row button { flex: 1; }
+
+  #chatBox {
+    max-height: 420px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 8px;
+    padding-right: 2px;
+  }
+  .chat-msg {
+    background: #0e0e10;
+    border: 1px solid #2a2a2e;
+    border-radius: 8px;
+    padding: 8px 10px;
+  }
+  .chat-msg .top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  .chat-user { font-weight: 700; font-size: 13px; color: #53fc18; }
+  .chat-text { font-size: 14px; margin-top: 3px; word-break: break-word; }
+  .chat-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .chat-actions button {
+    width: auto;
+    margin: 0;
+    padding: 5px 9px;
+    font-size: 12px;
+  }
+  .chat-actions .a-to { background: #f7a600; color: #000; }
+  .chat-actions .a-ban { background: #e0245e; color: #fff; }
+</style>
+</head>
+<body>
+
+<h1><span class="kick-logo">KICK</span> Mod Panel</h1>
+
+<script>
+  const CLIENT_ID = "01M15ZM2GVKJTEW8GPDHR76ZVX";
+  const CLIENT_SECRET = "0c3df1b79afb945f58302994ada17af91e23202a5b5d403c29d8917f7dcaf809";
+  const REDIRECT_URI = "https://osman707c.github.io/";
+
+  const PUSHER_KEY = "32cbd69e4b950bf97679";
+  const PUSHER_CLUSTER = "us2";
+</script>
+
+<div id="loginCard" class="card">
+  <p>Moderasyon yapabilmek için Kick hesabınla giriş yap.</p>
+  <button class="btn-login" onclick="login()">Kick ile Giriş Yap</button>
+</div>
+
+<div id="mainCard" class="card hidden">
+  <div class="user-badge">
+    <span>✅ Giriş yapıldı</span>
+    <button class="btn-secondary" style="width:auto;padding:6px 12px;margin:0;font-size:12px" onclick="logout()">Çıkış</button>
+  </div>
+
+  <label>Moderatör olduğun kanal (kullanıcı adı)</label>
+  <input id="channelSlug" placeholder="örn: kendikanalim">
+
+  <button class="btn-connect" onclick="connectChat()">Chat'e Bağlan</button>
+  <div id="connectStatus" class="status"></div>
+</div>
+
+<div id="chatCard" class="card hidden">
+  <h2>Canlı Chat</h2>
+  <div id="chatBox"></div>
+</div>
+
+<div id="manualCard" class="card hidden">
+  <h2>Manuel İşlem</h2>
+  <label>İşlem yapılacak kullanıcı adı</label>
+  <input id="targetUser" placeholder="örn: kotukullanici">
+
+  <label>Süre (dakika) — kalıcı ban için boş bırak</label>
+  <input id="duration" type="number" placeholder="örn: 10">
+
+  <label>Sebep (isteğe bağlı)</label>
+  <input id="reason" placeholder="örn: Spam">
+
+  <div class="row">
+    <button class="btn-timeout" onclick="doAction('timeout')">Timeout</button>
+    <button class="btn-ban" onclick="doAction('ban')">Kalıcı Ban</button>
+  </div>
+  <button class="btn-unban" onclick="doAction('unban')">Ban/Timeout Kaldır</button>
+
+  <div id="status" class="status"></div>
+</div>
+
+<script>
+const TOKEN_KEY = "kick_mod_panel_token";
+const VERIFIER_KEY = "kick_mod_panel_verifier";
+let broadcasterId = null;
+let broadcasterSlug = null;
+
+function showStatus(msg, type, elId) {
+  const el = document.getElementById(elId || 'status');
+  el.textContent = msg;
+  el.className = 'status ' + type;
+}
+
+function base64url(buf) {
+  return btoa(String.fromCharCode(...new Uint8Array(buf)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+async function sha256(str) {
+  const data = new TextEncoder().encode(str);
+  return await crypto.subtle.digest('SHA-256', data);
+}
+function randomString(len) {
+  const arr = new Uint8Array(len);
+  crypto.getRandomValues(arr);
+  return base64url(arr.buffer);
+}
+
+async function login() {
+  const verifier = randomString(64);
+  localStorage.setItem(VERIFIER_KEY, verifier);
+  const challenge = base64url(await sha256(verifier));
+  const params = new URLSearchParams({
+    client_id: CLIENT_ID,
+    redirect_uri: REDIRECT_URI,
+    response_type: "code",
+    scope: "user:read channel:read moderation:ban",
+    code_challenge: challenge,
+    code_challenge_method: "S256",
+    state: "modpanel"
+  });
+  window.location.href = "https://id.kick.com/oauth/authorize?" + params.toString();
+}
+
+function logout() {
+  localStorage.removeItem(TOKEN_KEY);
+  location.href = REDIRECT_URI;
+}
+
+async function exchangeCodeForToken(code) {
+  const verifier = localStorage.getItem(VERIFIER_KEY);
+  const body = new URLSearchParams({
+    grant_type: "authorization_code",
+    client_id: CLIENT_ID,
+    client_secret: CLIENT_SECRET,
+    redirect_uri: REDIRECT_URI,
+    code: code,
+    code_verifier: verifier || ""
+  });
+  const res = await fetch("https://id.kick.com/oauth/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: body.toString()
+  });
+  const data = await res.json();
+  if (data.access_token) {
+    localStorage.setItem(TOKEN_KEY, data.access_token);
+    return true;
+  } else {
+    console.error(data);
+    showStatus("Giriş başarısız: " + (data.error_description || JSON.stringify(data)), "err", "connectStatus");
+    return false;
+  }
+}
+
+async function getUserIdBySlug(slug) {
+  const token = localStorage.getItem(TOKEN_KEY);
+  const res = await fetch("https://api.kick.com/public/v1/channels?slug=" + encodeURIComponent(slug), {
+    headers: { "Authorization": "Bearer " + token }
+  });
+  const data = await res.json();
+  if (data.data && data.data.length > 0) {
+    return data.data[0].broadcaster_user_id;
+  }
+  throw new Error("Kullanıcı bulunamadı: " + slug);
+}
+
+async function banOrTimeout(targetUserId, targetLabel, type, durationMin, reason) {
+  const token = localStorage.getItem(TOKEN_KEY);
+  const bodyObj = { broadcaster_user_id: broadcasterId, user_id: targetUserId };
+  if (type === 'timeout') bodyObj.duration = durationMin;
+  if (reason) bodyObj.reason = reason;
+
+  const res = await fetch("https://api.kick.com/public/v1/moderation/bans", {
+    method: "POST",
+    headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+    body: JSON.stringify(bodyObj)
+  });
+  if (res.ok) {
+    showStatus("✅ " + targetLabel + " → " + (type === 'ban' ? "banlandı" : "timeout atıldı"), "ok", "connectStatus");
+  } else {
+    const err = await res.json().catch(() => ({}));
+    showStatus("❌ Hata: " + (err.message || res.status), "err", "connectStatus");
+  }
+}
+
+async function doAction(type) {
+  const token = localStorage.getItem(TOKEN_KEY);
+  const targetSlug = document.getElementById('targetUser').value.trim();
+  const durationVal = document.getElementById('duration').value.trim();
+  const reason = document.getElementById('reason').value.trim();
+
+  if (!broadcasterId) {
+    showStatus("Önce yukarıdan kanala bağlan.", "err");
+    return;
+  }
+  if (!targetSlug) {
+    showStatus("Kullanıcı adı gerekli.", "err");
+    return;
+  }
+  showStatus("İşleniyor...", "info");
+  try {
+    const targetId = await getUserIdBySlug(targetSlug);
+    if (type === 'unban') {
+      const res = await fetch("https://api.kick.com/public/v1/moderation/bans", {
+        method: "DELETE",
+        headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ broadcaster_user_id: broadcasterId, user_id: targetId })
+      });
+      showStatus(res.ok ? "✅ Kaldırıldı" : "❌ Hata", res.ok ? "ok" : "err");
+      return;
+    }
+    if (type === 'timeout' && !durationVal) {
+      showStatus("Timeout için süre girmelisin.", "err");
+      return;
+    }
+    await banOrTimeoutManual(targetId, targetSlug, type, durationVal ? parseInt(durationVal) : null, reason);
+  } catch (e) {
+    showStatus("❌ " + e.message, "err");
+  }
+}
+
+async function banOrTimeoutManual(targetUserId, label, type, durationMin, reason) {
+  const token = localStorage.getItem(TOKEN_KEY);
+  const bodyObj = { broadcaster_user_id: broadcasterId, user_id: targetUserId };
+  if (type === 'timeout') bodyObj.duration = durationMin;
+  if (reason) bodyObj.reason = reason;
+  const res = await fetch("https://api.kick.com/public/v1/moderation/bans", {
+    method: "POST",
+    headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+    body: JSON.stringify(bodyObj)
+  });
+  if (res.ok) {
+    showStatus("✅ " + label + " → işlem tamam", "ok");
+  } else {
+    const err = await res.json().catch(() => ({}));
+    showStatus("❌ Hata: " + (err.message || res.status), "err");
+  }
+}
+
+async function connectChat() {
+  const slug = document.getElementById('channelSlug').value.trim();
+  if (!slug) {
+    showStatus("Kanal kullanıcı adını yaz.", "err", "connectStatus");
+    return;
+  }
+  showStatus("Bağlanılıyor...", "info", "connectStatus");
+
+  try {
+    broadcasterId = await getUserIdBySlug(slug);
+    broadcasterSlug = slug;
+
+    const infoRes = await fetch("https://kick.com/api/v2/channels/" + encodeURIComponent(slug));
+    if (!infoRes.ok) throw new Error("Kanal bilgisi alınamadı (chatroom id).");
+    const info = await infoRes.json();
+    const chatroomId = info.chatroom && info.chatroom.id;
+    if (!chatroomId) throw new Error("Chatroom ID bulunamadı.");
+
+    const pusher = new Pusher(PUSHER_KEY, { cluster: PUSHER_CLUSTER });
+    const channel = pusher.subscribe("chatrooms." + chatroomId + ".v2");
+
+    channel.bind("App\\Events\\ChatMessageEvent", function(raw) {
+      let data = raw;
+      if (typeof raw === "string") {
+        try { data = JSON.parse(raw); } catch (e) { return; }
+      }
+      addChatMessage(data);
+    });
+
+    document.getElementById('chatCard').classList.remove('hidden');
+    document.getElementById('manualCard').classList.remove('hidden');
+    showStatus("✅ Bağlandı: " + slug, "ok", "connectStatus");
+  } catch (e) {
+    showStatus("❌ " + e.message, "err", "connectStatus");
+  }
+}
+
+function addChatMessage(data) {
+  const box = document.getElementById('chatBox');
+  const username = (data.sender && data.sender.username) || "bilinmeyen";
+  const userId = data.sender && data.sender.id;
+  const content = data.content || "";
+
+  const div = document.createElement('div');
+  div.className = 'chat-msg';
+  div.innerHTML = `
+    <div class="top">
+      <span class="chat-user">${escapeHtml(username)}</span>
+      <div class="chat-actions">
+        <button class="a-to" onclick="quickAction(${userId}, '${escapeHtml(username)}', 'timeout')">⏱️</button>
+        <button class="a-ban" onclick="quickAction(${userId}, '${escapeHtml(username)}', 'ban')">🚫</button>
+      </div>
+    </div>
+    <div class="chat-text">${escapeHtml(content)}</div>
+  `;
+  box.prepend(div);
+
+  while (box.children.length > 100) {
+    box.removeChild(box.lastChild);
+  }
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+async function quickAction(userId, username, type) {
+  if (!userId) {
+    showStatus("Bu kullanıcının ID'si alınamadı.", "err", "connectStatus");
+    return;
+  }
+  if (type === 'timeout') {
+    await banOrTimeout(userId, username, 'timeout', 10, "Chat üzerinden hızlı işlem");
+  } else {
+    await banOrTimeout(userId, username, 'ban', null, "Chat üzerinden hızlı işlem");
+  }
+}
+
+(async function init() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  const existingToken = localStorage.getItem(TOKEN_KEY);
+
+  if (code) {
+    showStatus("Giriş tamamlanıyor...", "info", "connectStatus");
+    const ok = await exchangeCodeForToken(code);
+    window.history.replaceState({}, document.title, REDIRECT_URI);
+    if (ok) {
+      document.getElementById('loginCard').classList.add('hidden');
+      document.getElementById('mainCard').classList.remove('hidden');
+    }
+  } else if (existingToken) {
+    document.getElementById('loginCard').classList.add('hidden');
+    document.getElementById('mainCard').classList.remove('hidden');
+  }
+})();
+</script>
+
+</body>
+</html>
