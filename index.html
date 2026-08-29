@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Kick Mod Panel</title>
+<script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #0a0a0b; color: #f2f2f2;
+    overflow: hidden;
+  }
+  #app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+
+  /* Header */
+  #header {
+    background: #141416; border-bottom: 1px solid #26262a;
+    padding: 10px 14px; flex-shrink: 0;
+  }
+  #header h1 { font-size: 16px; margin: 0 0 8px 0; display:flex; align-items:center; gap:6px; }
+  .kick-logo { color: #53fc18; font-weight: 900; }
+  #loginRow button {
+    width: 100%; padding: 12px; border-radius: 8px; border: none;
+    background: #53fc18; color: #000; font-weight: 700; font-size: 15px;
+  }
+  #connectForm { display: flex; flex-direction: column; gap: 8px; }
+  #connectForm input {
+    padding: 10px; border-radius: 8px; border: 1px solid #333; background: #0a0a0b; color: #fff; font-size: 15px;
+  }
+  #connectForm button {
+    padding: 10px; border-radius: 8px; border: none; background: #53fc18; color: #000; font-weight: 700;
+  }
+  #connectedBar {
+    display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: #9c9ca3;
+  }
+  #connectedBar b { color: #53fc18; }
+  #connectedBar button {
+    background: #26262a; color: #fff; border: none; border-radius: 6px; padding: 6px 10px; font-size: 12px;
+  }
+  .hidden { display: none !important; }
+
+  /* Chat feed */
+  #chatFeed {
+    flex: 1; overflow-y: auto; padding: 8px 10px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .msg {
+    background: #141416; border-radius: 8px; padding: 7px 10px;
+    font-size: 14.5px; line-height: 1.4; border: 1px solid transparent;
+  }
+  .msg.mention { border-color: #f7a600; background: #2a2210; }
+  .msg .uname {
+    font-weight: 700; color: #53fc18; cursor: pointer; margin-right: 4px;
+  }
+  .msg .txt { color: #e5e5e8; word-break: break-word; }
+
+  /* Bottom input */
+  #inputBar { flex-shrink: 0; border-top: 1px solid #26262a; background: #141416; padding: 8px 10px; }
+  #replyPreview {
+    display: flex; justify-content: space-between; align-items: center;
+    background: #1c2733; border-radius: 6px; padding: 6px 10px; margin-bottom: 6px; font-size: 12.5px; color: #7cc4f7;
+  }
+  #replyPreview button { background: none; border: none; color: #7cc4f7; font-size: 16px; }
+  #sendRow { display: flex; gap: 8px; }
+  #sendRow input {
+    flex: 1; padding: 12px; border-radius: 20px; border: 1px solid #333; background: #0a0a0b; color: #fff; font-size: 15px;
+  }
+  #sendRow button {
+    background: #53fc18; color: #000; border: none; border-radius: 20px; padding: 0 18px; font-weight: 700;
+  }
+
+  /* Action sheet */
+  #overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: flex-end; z-index: 50;
+  }
+  #sheet {
+    background: #18181b; width: 100%; border-radius: 16px 16px 0 0; padding: 16px;
+    border-top: 1px solid #2a2a2e;
+  }
+  #sheet h3 { margin: 0 0 12px 0; font-size: 16px; color: #53fc18; }
+  #sheet .opt {
+    width: 100%; text-align: left; background: #0a0a0b; border: 1px solid #2a2a2e; color: #fff;
+    padding: 13px; border-radius: 8px; margin-bottom: 8px; font-size: 15px;
+  }
+  #sheet .opt.danger { color: #ff7b7b; }
+  #sheet .customRow { display: flex; gap: 8px; margin-bottom: 8px; }
+  #sheet .customRow input {
+    flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #0a0a0b; color: #fff;
+  }
+  #sheet .customRow button { background: #f7a600; color: #000; border: none; border-radius: 8px; padding: 0 16px; font-weight: 700; }
+  #sheetCancel { width: 100%; padding: 12px; background: #26262a; color: #fff; border: none; border-radius: 8px; margin-top: 4px; }
+
+  #toast {
+    position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+    background: #18181b; border: 1px solid #2a2a2e; padding: 10px 16px; border-radius: 20px;
+    font-size: 13px; z-index: 60; display: none; max-width: 90%; text-align: center;
+  }
+  #toast.ok { color: #7ee787; }
+  #toast.err { color: #ff7b7b; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="header">
+    <h1><span class="kick-logo">KICK</span> Mod Panel</h1>
+
+    <div id="loginRow">
+      <button onclick="login()">Kick ile Giriş Yap</button>
+    </div>
+
+    <div id="connectForm" class="hidden">
+      <input id="channelSlug" placeholder="Moderatör olduğun kanal (kullanıcı adı)">
+      <input id="myUsername" placeholder="Senin kullanıcı adın (etiketlenince uyarı için)">
+      <button onclick="connectChat()">Chat'e Bağlan</button>
+    </div>
+
+    <div id="connectedBar" class="hidden">
+      <span>🟢 <b id="connectedName"></b> izleniyor</span>
+      <button onclick="disconnectChat()">Bağlantıyı Kes</button>
+    </div>
+  </div>
+
+  <div id="chatFeed"></div>
+
+  <div id="inputBar" class="hidden">
+    <div id="replyPreview" class="hidden">
+      <span id="replyText"></span>
+      <button onclick="cancelReply()">✕</button>
+    </div>
+    <div id="sendRow">
+      <input id="msgInput" placeholder="Mesaj yaz..." onkeydown="if(event.key==='Enter') sendMessage()">
+      <button onclick="sendMessage()">Gönder</button>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const CLIENT_ID = "01M15ZM2GVKJTEW8GPDHR76ZVX";
+  const CLIENT_SECRET = "0c3df1b79afb945f58302994ada17af91e23202a5b5d403c29d8917f7dcaf809";
+  const REDIRECT_URI = "https://osman707c.github.io/";
+  const PUSHER_KEY = "32cbd69e4b950bf97679";
+  const PUSHER_CLUSTER = "us2";
+</script>
+
+<script>
+const TOKEN_KEY = "kick_mod_panel_token";
+const VERIFIER_KEY = "kick_mod_panel_verifier";
+let broadcasterId = null;
+let broadcasterSlug = null;
+let myUsername = "";
+let replyTarget = null; // {id, username}
+let currentSheetUser = null; // {id, username}
+let pusherChannel = null;
+
+function toast(msg, type) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = type;
+  el.style.display = 'block';
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => { el.style.display = 'none'; }, 3000);
+}
+
+function base64url(buf) {
+  return btoa(String.fromCharCode(...new Uint8Array(buf)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+async function sha256(str) {
+  return await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+}
+function randomString(len) {
+  const arr = new Uint8Array(len);
+  crypto.getRandomValues(arr);
+  return base64url(arr.buffer);
+}
+
+async function login() {
+  const verifier = randomString(64);
+  localStorage.setItem(VERIFIER_KEY, verifier);
+  const challenge = base64url(await sha256(verifier));
+  const params = new URLSearchParams({
+    client_id: CLIENT_ID,
+    redirect_uri: REDIRECT_URI,
+    response_type: "code",
+    scope: "user:read channel:read moderation:ban chat:write",
+    code_challenge: challenge,
+    code_challenge_method: "S256",
+    state: "modpanel"
+  });
+  window.location.href = "https://id.kick.com/oauth/authorize?" + params.toString();
+}
+
+async function exchangeCodeForToken(code) {
+  const verifier = localStorage.getItem(VERIFIER_KEY);
+  const body = new URLSearchParams({
+    grant_type: "authorization_code",
+    client_id: CLIENT_ID,
+    client_secret: CLIENT_SECRET,
+    redirect_uri: REDIRECT_URI,
+    code: code,
+    code_verifier: verifier || ""
+  });
+  const res = await fetch("https://id.kick.com/oauth/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: body.toString()
+  });
+  const data = await res.json();
+  if (data.access_token) {
+    localStorage.setItem(TOKEN_KEY, data.access_token);
+    return true;
+  }
+  toast("Giriş başarısız", "err");
+  return false;
+}
+
+async function getUserIdBySlug(slug) {
+  const token = localStorage.getItem(TOKEN_KEY);
+  const res = await fetch("https://api.kick.com/public/v1/channels?slug=" + encodeURIComponent(slug), {
+    headers: { "Authorization": "Bearer " + token }
+  });
+  const data = await res.json();
+  if (data.data && data.data.length > 0) return data.data[0].broadcaster_user_id;
+  throw new Error("Kullanıcı bulunamadı: " + slug);
+}
+
+function showLoggedInUI() {
+  document.getElementById('loginRow').classList.add('hidden');
+  document.getElementById('connectForm').classList.remove('hidden');
+}
+
+async function connectChat() {
+  const slug = document.getElementById('channelSlug').value.trim();
+  myUsername = document.getElementById('myUsername').value.trim().toLowerCase();
+  if (!slug) { toast("Kanal kullanıcı adını yaz.", "err"); return; }
+  toast("Bağlanılıyor...", "ok");
+
+  try {
+    broadcasterId = await getUserIdBySlug(slug);
+    broadcasterSlug = slug;
+
+    const infoRes = await fetch("https://kick.com/api/v2/channels/" + encodeURIComponent(slug));
+    if (!infoRes.ok) throw new Error("Kanal bilgisi alınamadı.");
+    const info = await infoRes.json();
+    const chatroomId = info.chatroom && info.chatroom.id;
+    if (!chatroomId) throw new Error("Chatroom ID bulunamadı.");
+
+    const pusher = new Pusher(PUSHER_KEY, { cluster: PUSHER_CLUSTER });
+    pusherChannel = pusher.subscribe("chatrooms." + chatroomId + ".v2");
+    pusherChannel.bind("App\\Events\\ChatMessageEvent", function(raw) {
+      let data = raw;
+      if (typeof raw === "string") { try { data = JSON.parse(raw); } catch(e) { return; } }
+      addChatMessage(data);
+    });
+
+    document.getElementById('connectForm').classList.add('hidden');
+    document.getElementById('connectedBar').classList.remove('hidden');
+    document.getElementById('connectedName').textContent = slug;
+    document.getElementById('inputBar').classList.remove('hidden');
+
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+    toast("Bağlandı: " + slug, "ok");
+  } catch (e) {
+    toast(e.message, "err");
+  }
+}
+
+function disconnectChat() {
+  location.reload();
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+function playBeep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.2);
+  } catch(e) {}
+}
+
+function addChatMessage(data) {
+  const feed = document.getElementById('chatFeed');
+  const username = (data.sender && data.sender.username) || "bilinmeyen";
+  const userId = data.sender && data.sender.id;
+  const content = data.content || "";
+  const msgId = data.id || data.message_id || "";
+
+  const isMention = myUsername && content.toLowerCase().includes(myUsername);
+
+  const div = document.createElement('div');
+  div.className = 'msg' + (isMention ? ' mention' : '');
+  div.innerHTML = `<span class="uname" onclick='openSheet(${userId}, ${JSON.stringify(username)}, ${JSON.stringify(msgId)})'>${escapeHtml(username)}:</span><span class="txt">${escapeHtml(content)}</span>`;
+  feed.appendChild(div);
+  feed.scrollTop = feed.scrollHeight;
+
+  while (feed.children.length > 150) feed.removeChild(feed.firstChild);
+
+  if (isMention) {
+    playBeep();
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification("Etiketlendin: " + username, { body: content });
+    }
+  }
+}
+
+// --- Action sheet ---
+function openSheet(userId, username, msgId) {
+  currentSheetUser = { id: userId, username: username, msgId: msgId };
+  const overlay = document.createElement('div');
+  overlay.id = 'overlay';
+  overlay.onclick = (e) => { if (e.target.id === 'overlay') closeSheet(); };
+  overlay.innerHTML = `
+    <div id="sheet">
+      <h3>${escapeHtml(username)}</h3>
+      <button class="opt" onclick="quickTimeout(10)">⏱️ 10 dakika Timeout</button>
+      <button class="opt" onclick="quickTimeout(30)">⏱️ 30 dakika Timeout</button>
+      <button class="opt" onclick="quickTimeout(60)">⏱️ 1 saat Timeout</button>
+      <div class="customRow">
+        <input id="customDuration" type="number" placeholder="Özel süre (dk)">
+        <button onclick="customTimeout()">Uygula</button>
+      </div>
+      <button class="opt danger" onclick="quickBan()">🚫 Kalıcı Ban</button>
+      <button class="opt" onclick="startReply()">↩️ Yanıtla</button>
+      <button id="sheetCancel" onclick="closeSheet()">İptal</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+function closeSheet() {
+  const overlay = document.getElementById('overlay');
+  if (overlay) overlay.remove();
+}
+
+async function quickTimeout(minutes) {
+  await doModAction('timeout', minutes);
+  closeSheet();
+}
+async function customTimeout() {
+  const val = document.getElementById('customDuration').value.trim();
+  if (!val) { toast("Süre gir.", "err"); return; }
+  await doModAction('timeout', parseInt(val));
+  closeSheet();
+}
+async function quickBan() {
+  await doModAction('ban', null);
+  closeSheet();
+}
+function startReply() {
+  replyTarget = { id: currentSheetUser.msgId, username: currentSheetUser.username };
+  document.getElementById('replyPreview').classList.remove('hidden');
+  document.getElementById('replyText').textContent = "↩️ Yanıtlanıyor: " + currentSheetUser.username;
+  document.getElementById('msgInput').focus();
+  closeSheet();
+}
+function cancelReply() {
+  replyTarget = null;
+  document.getElementById('replyPreview').classList.add('hidden');
+}
+
+async function doModAction(type, durationMin) {
+  const token = localStorage.getItem(TOKEN_KEY);
+  const bodyObj = { broadcaster_user_id: broadcasterId, user_id: currentSheetUser.id };
+  if (type === 'timeout') bodyObj.duration = durationMin;
+
+  const res = await fetch("https://api.kick.com/public/v1/moderation/bans", {
+    method: "POST",
+    headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+    body: JSON.stringify(bodyObj)
+  });
+  if (res.ok) {
+    toast("✅ " + currentSheetUser.username + " → " + (type === 'ban' ? "banlandı" : durationMin + " dk timeout"), "ok");
+  } else {
+    const err = await res.json().catch(() => ({}));
+    toast("❌ " + (err.message || res.status), "err");
+  }
+}
+
+async function sendMessage() {
+  const input = document.getElementById('msgInput');
+  const text = input.value.trim();
+  if (!text || !broadcasterId) return;
+
+  const token = localStorage.getItem(TOKEN_KEY);
+  const bodyObj = { broadcaster_user_id: broadcasterId, content: text, type: "user" };
+  if (replyTarget && replyTarget.id) bodyObj.reply_to_message_id = replyTarget.id;
+
+  const res = await fetch("https://api.kick.com/public/v1/chat", {
+    method: "POST",
+    headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+    body: JSON.stringify(bodyObj)
+  });
+  if (res.ok) {
+    input.value = "";
+    cancelReply();
+  } else {
+    const err = await res.json().catch(() => ({}));
+    toast("❌ Gönderilemedi: " + (err.message || res.status), "err");
+  }
+}
+
+(async function init() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  const existingToken = localStorage.getItem(TOKEN_KEY);
+
+  if (code) {
+    const ok = await exchangeCodeForToken(code);
+    window.history.replaceState({}, document.title, REDIRECT_URI);
+    if (ok) showLoggedInUI();
+  } else if (existingToken) {
+    showLoggedInUI();
+  }
+})();
+</script>
+</body>
+</html>
