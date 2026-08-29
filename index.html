@@ -193,6 +193,11 @@ async function login() {
 function logoutAndRelogin() {
   localStorage.removeItem(TOKEN_KEY);
   login();
+  
+  const CLIENT_ID = "01M15ZM2GVKJTEW8GPDHR76ZVX";
+const CLIENT_SECRET = "0c3df1b79afb945f58302994ada17af91e23202a5b5d403c29d8917f7dcaf809";
+const REDIRECT_URI = "https://osman707c.github.io/"; 
+
 }
 
 async function exchangeCodeForToken(code) {
