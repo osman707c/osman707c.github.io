@@ -1,0 +1,1459 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Kick Mod</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kick Mod">
+<meta name="theme-color" content="#0b0b0d">
+<script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  :root { --accent: var(--accent); --accentDark: var(--accentDark); --chatFont: 14.5px; }
+  html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0b0b0d; color: #f5f5f7; overflow: hidden; -webkit-font-smoothing: antialiased; }
+  #app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; padding-top: env(safe-area-inset-top); }
+
+  /* ===== Header ===== */
+  #header { background: #131315; border-bottom: 1px solid #202023; padding: 14px 16px 12px; flex-shrink: 0; }
+  #titleRow { display:flex; align-items:center; justify-content:space-between; margin-bottom: 12px; }
+  #titleRow .brand { display:flex; align-items:center; gap:8px; font-size: 17px; font-weight: 800; }
+  .brand-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+  #iconBtns { display:flex; gap:8px; }
+  .iconBtn { background: #1b1b1e; border: 1px solid #262629; color: #d8d8db; font-size: 16px; width: 36px; height: 36px; border-radius: 11px; display:flex; align-items:center; justify-content:center; }
+
+  #loginRow button { width: 100%; padding: 14px; border-radius: 14px; border: none; background: linear-gradient(135deg,#5dff1f,var(--accentDark)); color: #06210b; font-weight: 800; font-size: 15.5px; box-shadow: 0 8px 24px rgba(83,252,24,0.25); }
+
+  #connectForm { display: flex; flex-direction: column; gap: 9px; }
+  .field { background: #17171a; border: 1px solid #232326; border-radius: 13px; padding: 11px 13px; }
+  .field input { width: 100%; background: none; border: none; color: #fff; font-size: 15px; }
+  .field input:focus { outline: none; }
+  .field label { display:block; font-size: 10.5px; color: #6e6e74; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 2px; }
+  #connectForm > button { padding: 13px; border-radius: 13px; border: none; background: linear-gradient(135deg,#5dff1f,var(--accentDark)); color: #06210b; font-weight: 800; font-size: 15px; }
+  #recentChips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
+  #recentChips button { width: auto; background: #17171a; color: #b8b8bd; border: 1px solid #232326; border-radius: 20px; padding: 7px 13px; font-size: 12.5px; }
+
+  #connectedBar { display: flex; align-items: center; justify-content: space-between; }
+  .connStatus { display:flex; align-items:center; gap:8px; font-size: 13.5px; }
+  .live-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); flex-shrink:0; animation: pulse 1.6s infinite; }
+  @keyframes pulse { 0%{box-shadow:0 0 0 0 rgba(83,252,24,0.55);} 70%{box-shadow:0 0 0 7px rgba(83,252,24,0);} 100%{box-shadow:0 0 0 0 rgba(83,252,24,0);} }
+  .connStatus b { color: var(--accent); font-weight: 800; }
+  .connStatus .viewers { color: #6e6e74; font-size: 12px; }
+  #connectedBar .actions { display:flex; gap:6px; }
+  #connectedBar .actions button { background: #1b1b1e; border: 1px solid #262629; color: #d8d8db; border-radius: 10px; padding: 7px 10px; font-size: 12.5px; }
+
+  #pinnedBar { background: #1a1608; border-bottom: 1px solid #332a10; padding: 8px 12px; }
+  .pinnedItem { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; font-size: 12.5px; color: #f0c060; padding: 5px 0; }
+  .pinnedItem b { color: #f7a600; }
+  .pinnedItem button { background:none; border:none; color:#f0c060; font-size:15px; flex-shrink:0; }
+
+  .sysMsg { text-align:center; font-size: 12px; color: #c084fc; background: rgba(192,132,252,0.08); border-radius: 20px; padding: 6px 12px; margin: 4px auto; max-width: 90%; }
+  .replyQuote { font-size: 12px; color: #8a8a90; border-left: 2px solid #3a3a3f; padding-left: 8px; margin-bottom: 3px; }
+  .replyQuote b { color: #a8a8ae; }
+
+  .hidden { display: none !important; }
+
+  /* ===== Chat ===== */
+  #chatWrap { position: relative; flex: 1; display: flex; min-height: 0; background: #0b0b0d; }
+  #chatFeed { flex: 1; overflow-y: auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; }
+  #jumpToBottom { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #06210b; border: none; border-radius: 22px; padding: 9px 18px; font-size: 12.5px; font-weight: 800; z-index: 20; box-shadow: 0 8px 20px rgba(0,0,0,0.45); display: none; }
+
+  .msg { padding: 5px 8px; border-radius: 10px; }
+  .msg.mention { background: linear-gradient(90deg, rgba(247,166,0,0.15), transparent); border-left: 3px solid #f7a600; padding-left: 8px; }
+  .msg.starred:not(.mention) { background: linear-gradient(90deg, rgba(247,166,0,0.06), transparent); }
+  .msg-line { font-size: var(--chatFont); line-height: 1.55; word-break: break-word; }
+  .uname { font-weight: 800; cursor: pointer; }
+  .badge { font-size: 9px; font-weight: 800; padding: 1.5px 5px; border-radius: 4px; text-transform: uppercase; margin-right: 3px; vertical-align: 1px; }
+  .badge.mod { background: #2b90d9; color: #fff; }
+  .badge.vip { background: #e0245e; color: #fff; }
+  .badge.sub { background: #f7a600; color: #000; }
+  .badge.og { background: var(--accent); color: #000; }
+  .msg-time { color: #46464b; font-size: 10.5px; margin-right: 4px; }
+  .txt a { color: #7cc4f7; }
+  .emote-img { height: 22px; vertical-align: middle; margin: 0 1px; }
+
+  #emptyState { flex: 1; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:10px; color:#3d3d42; padding: 30px; text-align:center; }
+  #emptyState .icon { font-size: 44px; }
+  #emptyState .sub { font-size: 13px; color: #55555a; }
+
+  /* ===== Debug panel ===== */
+  #debugBar { background: #241a0c; border-bottom: 1px solid #3a2a10; padding: 8px 12px; font-size: 11.5px; color: #f7a600; display:flex; justify-content:space-between; align-items:center; }
+  #debugBar button { background: #3a2a10; border: none; color: #f7a600; border-radius: 8px; padding: 5px 10px; font-size: 11px; }
+
+  /* ===== Input bar ===== */
+  #inputBar { flex-shrink: 0; border-top: 1px solid #202023; background: #131315; padding: 10px 12px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
+  #quickReplies { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; }
+  #quickReplies button { flex-shrink: 0; width: auto; background: #1b1b1e; border: 1px solid #262629; color: #b8b8bd; border-radius: 16px; padding: 6px 12px; font-size: 12px; white-space: nowrap; }
+  #replyPreview { display: flex; justify-content: space-between; align-items: center; background: #16202b; border-radius: 10px; padding: 8px 12px; margin-bottom: 8px; font-size: 12.5px; color: #7cc4f7; }
+  #replyPreview button { background: none; border: none; color: #7cc4f7; font-size: 17px; }
+  #sendRow { display: flex; gap: 7px; align-items: flex-end; }
+  #emotePickerPanel { max-height: 190px; overflow-y: auto; margin-top: 10px; border-top: 1px solid #202023; padding-top: 10px; }
+  #emotePickerPanel .epHead { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+  #emotePickerPanel .epHead button { width:auto; background:none; border:none; color:#8a8a90; }
+  #emotePickerPanel .sheetLabel { margin: 10px 0 6px; }
+  #msgInput { flex: 1; padding: 12px 15px; border-radius: 22px; border: 1px solid #262629; background: #1b1b1e; color: #fff; font-size: 15px; max-height: 90px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; }
+  #msgInput:empty:before { content: attr(data-ph); color: #5a5a5f; }
+  #msgInput:focus { outline: none; border-color: var(--accent); }
+  .emote-chip { height: 20px; vertical-align: middle; margin: 0 2px; }
+  #emoteBtn, #sendBtn { flex-shrink: 0; border: none; }
+  #emoteBtn { background: #1b1b1e; border: 1px solid #262629; color: #fff; border-radius: 50%; width: 44px; height: 44px; font-size: 19px; }
+  #sendBtn { background: linear-gradient(135deg,#5dff1f,var(--accentDark)); color: #06210b; border-radius: 22px; padding: 0 20px; height: 44px; font-weight: 800; font-size: 14.5px; }
+
+  /* ===== Bottom sheet ===== */
+  #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: flex-end; z-index: 50; animation: fadeIn 0.15s ease-out; }
+  @keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
+  #sheet { background: #131315; width: 100%; max-height: 85vh; overflow-y: auto; border-radius: 22px 22px 0 0; padding: 10px 18px 22px; border-top: 1px solid #232326; }
+  #sheet::before { content:""; display:block; width:40px; height:4px; background:#2b2b2f; border-radius:3px; margin: 6px auto 16px; }
+  #sheet h3 { margin: 0 0 14px 0; font-size: 17px; display:flex; align-items:center; gap:8px; }
+  #sheet .opt { width: 100%; text-align: left; background: #1b1b1e; border: 1px solid #262629; color: #fff; padding: 14px 16px; border-radius: 13px; margin-bottom: 8px; font-size: 15px; display:flex; align-items:center; gap:10px; }
+  #sheet .opt.danger { color: #ff8080; border-color: #3a1616; background: #1e1215; }
+  #sheet .customRow { display: flex; gap: 8px; margin-bottom: 8px; }
+  #sheet .customRow input { flex: 1; padding: 13px; border-radius: 13px; border: 1px solid #262629; background: #1b1b1e; color: #fff; }
+  #sheet .customRow button { background: #f7a600; color: #241a00; border: none; border-radius: 13px; padding: 0 18px; font-weight: 800; }
+  #sheetCancel { width: 100%; padding: 13px; background: #1b1b1e; border: 1px solid #262629; color: #d8d8db; border-radius: 13px; margin-top: 4px; font-weight: 600; }
+
+  .emoteGrid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+  .emoteGrid img { width: 100%; border-radius: 9px; background: #1b1b1e; padding: 5px; border: 1px solid #262629; }
+  .sheetLabel { font-size: 11.5px; color: #6e6e74; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 8px 0; }
+
+  .settingSection { margin-bottom: 22px; }
+  .toggleRow { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #1b1b1e; }
+  .toggleRow span { font-size: 14.5px; }
+  .switch { width: 48px; height: 28px; background: #2b2b2f; border-radius: 14px; position: relative; border: none; flex-shrink:0; transition: 0.15s; }
+  .switch.on { background: var(--accent); }
+  .switch .dot { position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; background: #fff; border-radius: 50%; transition: 0.15s; }
+  .switch.on .dot { left: 23px; }
+  .wordRow { display: flex; gap: 6px; align-items: center; background:#1b1b1e; border:1px solid #262629; border-radius:11px; padding:9px; margin-bottom:6px; }
+  .wordRow span { flex: 1; font-size: 13.5px; }
+  .wordRow select { background:#131315; color:#fff; border:1px solid #262629; border-radius:7px; font-size:12px; padding: 4px; }
+  .wordRow button { width:auto; background:none; border:none; color:#ff8080; font-size:17px; padding:0 4px; }
+  #addWordRow { display: flex; gap: 6px; margin-top: 8px; }
+  #addWordRow input { flex: 1; padding: 11px; border-radius: 11px; border: 1px solid #262629; background: #1b1b1e; color: #fff; }
+  #addWordRow button { width: auto; background: var(--accent); color: #06210b; border: none; border-radius: 11px; padding: 0 16px; font-weight: 800; }
+
+  .debugEntry { background:#1b1b1e; border:1px solid #262629; border-radius:11px; padding:10px; margin-bottom:8px; font-family: monospace; font-size: 11.5px; word-break: break-all; }
+  .debugEntry .dbHead { display:flex; justify-content:space-between; margin-bottom:6px; color:var(--accent); font-family: -apple-system; font-weight:700; font-size:12.5px; }
+  .debugEntry .dbHead button { background:#262629; border:none; color:#fff; border-radius:6px; padding:3px 8px; font-size:10.5px; }
+
+  #toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: #17171a; border: 1px solid #262629; padding: 11px 18px; border-radius: 22px; font-size: 13px; z-index: 60; display: none; max-width: 90%; text-align: center; box-shadow: 0 10px 26px rgba(0,0,0,0.5); }
+  #toast.ok { color: #7ee787; }
+  #toast.err { color: #ff8080; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="header">
+    <div id="titleRow">
+      <div class="brand"><span class="brand-dot"></span> Kick Mod</div>
+      <div id="iconBtns">
+        <button class="iconBtn" id="searchBtn" onclick="toggleSearch()"></button>
+        <button class="iconBtn hidden" id="debugToggleBtn" onclick="openDebugPanel()"></button>
+        <button class="iconBtn" id="historyBtn" onclick="openActionLog()" style="position:relative;"><span id="historyBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--accent);color:#06210b;font-size:9px;font-weight:800;border-radius:8px;padding:1px 4px;"></span></button>
+        <button class="iconBtn" id="gearBtn" onclick="openSettings()"></button>
+      </div>
+    </div>
+
+    <div id="searchBar" class="hidden" style="margin-bottom:10px;">
+      <div class="field"><input id="searchInput" placeholder="Kullanıcı veya kelime ara..." oninput="applySearch()"></div>
+    </div>
+
+    <div id="loginRow"><button onclick="login()">Kick ile Giriş Yap</button></div>
+
+    <div id="connectForm" class="hidden">
+      <div class="field"><label>Moderatör olduğun kanal</label><input id="channelSlug" placeholder="kullanıcı adı"></div>
+      <div class="field"><label>Senin kullanıcı adın</label><input id="myUsername" placeholder="etiketlenince uyarı için"></div>
+      <button onclick="connectChat()">Chat'e Bağlan</button>
+      <div id="recentChips"></div>
+    </div>
+
+    <div id="connectedBar" class="hidden">
+      <div class="connStatus"><span class="live-dot" id="liveDot"></span> <b id="connectedName"></b> <span id="viewerCount" class="viewers"></span> <span id="msgRate" class="viewers"></span></div>
+      <div class="actions">
+        <button id="panicBtn" onclick="togglePanic()"></button>
+        <button id="statsBtn" onclick="openStats()"></button>
+        <button id="clearBtn" onclick="clearChatView()"></button>
+        <button id="reconnectBtn" class="hidden" onclick="manualReconnect()"></button>
+        <button onclick="disconnectChat()">Ayrıl</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="debugBar" class="hidden">
+    <span>Debug modu açık — son mesajlar için "Ayarlar → Debug" bak</span>
+  </div>
+
+  <div id="pinnedBar" class="hidden"></div>
+
+  <div id="chatWrap">
+    <div id="chatFeed"></div>
+    <button id="jumpToBottom" onclick="scrollToBottomForced()">Yeni mesajlar</button>
+  </div>
+  <div id="emptyState">
+    <div class="icon" id="emptyIcon"></div>
+    <div>Henüz bir kanala bağlanmadın</div>
+    <div class="sub">Yukarıdan kanal kullanıcı adını yazıp bağlan</div>
+  </div>
+
+  <div id="inputBar" class="hidden">
+    <div id="quickReplies"></div>
+    <div id="replyPreview" class="hidden">
+      <span id="replyText"></span>
+      <button id="cancelReplyBtn" onclick="cancelReply()"></button>
+    </div>
+    <div id="sendRow">
+      <button id="emoteBtn" onclick="openEmotePicker()"></button>
+      <input id="msgInput" placeholder="Mesaj yaz..." maxlength="500" oninput="updateCharCount()" onkeydown="if(event.key==='Enter'){event.preventDefault();sendMessage();}">
+      <button id="sendBtn" onclick="sendMessage()">Gönder</button>
+    </div>
+    <div id="charCount" style="text-align:right;font-size:10.5px;color:#4a4a4f;margin-top:3px;"></div>
+    <div id="emotePickerPanel" class="hidden"></div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const CLIENT_ID = "01M15ZM2GVKJTEW8GPDHR76ZVX";
+  const CLIENT_SECRET = "0c3df1b79afb945f58302994ada17af91e23202a5b5d403c29d8917f7dcaf809";
+  const REDIRECT_URI = "https://osman707c.github.io/";
+  const PUSHER_KEY = "32cbd69e4b950bf97679";
+  const PUSHER_CLUSTER = "us2";
+</script>
+
+<script>
+const TOKEN_KEY = "kmp_token";
+const VERIFIER_KEY = "kmp_verifier";
+const RECENT_KEY = "kmp_recent";
+const SETTINGS_KEY = "kmp_settings";
+const RECENT_EMOTES_KEY = "kmp_recent_emotes";
+
+let broadcasterId = null, broadcasterSlug = null, myUsername = "";
+let replyTarget = null, currentSheetUser = null, pusherChannel = null, pusherClient = null;
+let channelEmotes = [];
+let thirdPartyEmoteMap = {};
+let messageQueue = [];
+let isNearBottom = true, unreadCount = 0;
+let debugLog = [];
+let pinnedMessages = [];
+let logoutBtnAdded = false;
+let msgTimestamps = [];
+let totalMessagesSeen = 0;
+let sessionStart = Date.now();
+let peakRate = 0;
+let wordFreq = {};
+let chatterCounts = {};
+
+function updateMsgRate() {
+  const now = Date.now();
+  msgTimestamps = msgTimestamps.filter(t => now - t < 60000);
+  peakRate = Math.max(peakRate, msgTimestamps.length);
+  const el = document.getElementById('msgRate');
+  if (el) el.textContent = msgTimestamps.length ? "· " + msgTimestamps.length + " mesaj/dk" : "";
+}
+setInterval(updateMsgRate, 2000);
+
+let settings = loadSettings();
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (raw) return Object.assign(defaultSettings(), JSON.parse(raw));
+  } catch(e) {}
+  return defaultSettings();
+}
+function defaultSettings() {
+  return {
+    showEmotes: true, autoModOn: true, notifyOn: true, debugMode: false,
+    bannedWords: [], quickReplies: [],
+    capsSpamOn: false, emoteSpamOn: false, linkAutoOn: false, repeatSpamOn: false,
+    autoDuration: 10,
+    whitelistUsers: [], mutedUsers: [], starUsers: [], userNotes: {},
+    accent: "var(--accent)", fontSize: 14.5, time24h: true,
+    notifSound: "beep", quietOn: false, quietStart: 23, quietEnd: 8
+  };
+}
+function saveSettings() { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }
+
+function toast(msg, type) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = type;
+  el.style.display = 'block';
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => { el.style.display = 'none'; }, 3200);
+}
+function escapeHtml(str) {
+  return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+/* Emoji yerine sade çizgi ikonlar */
+const ICO = {
+  gear: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
+  debug: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>`,
+  smile: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>`,
+  clear: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>`,
+  pin: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a5 5 0 0 0-5 5c0 3 5 11 5 11s5-8 5-11a5 5 0 0 0-5-5z"/><circle cx="12" cy="7" r="2"/></svg>`,
+  reply: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>`,
+  ban: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/></svg>`,
+  clock: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+  spark: `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.5 6.5L20 10l-6.5 1.5L12 18l-1.5-6.5L4 10l6.5-1.5z"/></svg>`,
+  chat: `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
+  user: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
+  bell: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`,
+  history: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>`,
+  undo: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg>`,
+  x: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+  send: `<svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>`,
+  eyeOff: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`,
+  eye: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`,
+  stats: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`,
+  refresh: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>`,
+  search: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`,
+  download: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`,
+  copy: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`,
+  link: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`,
+  volumeMute: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>`,
+  star: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
+  shield: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+  trend: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>`,
+  trash: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>`,
+  note: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>`,
+  crown: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20"/><path d="M4 20V9l4 3 4-6 4 6 4-3v11"/></svg>`,
+};
+
+/* ===================== OAuth / PKCE ===================== */
+function base64url(buf) { return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+async function sha256(str) { return await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str)); }
+function randomString(len) { const a=new Uint8Array(len); crypto.getRandomValues(a); return base64url(a.buffer); }
+
+async function login() {
+  const verifier = randomString(64);
+  localStorage.setItem(VERIFIER_KEY, verifier);
+  const challenge = base64url(await sha256(verifier));
+  const params = new URLSearchParams({
+    client_id: CLIENT_ID, redirect_uri: REDIRECT_URI, response_type: "code",
+    scope: "user:read channel:read moderation:ban moderation:chat_message:manage chat:write",
+    code_challenge: challenge, code_challenge_method: "S256", state: "modpanel"
+  });
+  window.location.href = "https://id.kick.com/oauth/authorize?" + params.toString();
+}
+
+async function exchangeCodeForToken(code) {
+  const verifier = localStorage.getItem(VERIFIER_KEY);
+  const body = new URLSearchParams({
+    grant_type: "authorization_code", client_id: CLIENT_ID, client_secret: CLIENT_SECRET,
+    redirect_uri: REDIRECT_URI, code: code, code_verifier: verifier || ""
+  });
+  const res = await fetch("https://id.kick.com/oauth/token", {
+    method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: body.toString()
+  });
+  const data = await res.json().catch(() => ({}));
+  if (data.access_token) { localStorage.setItem(TOKEN_KEY, data.access_token); return true; }
+  toast("Giriş başarısız: " + (data.error_description || data.error || "bilinmeyen hata"), "err");
+  return false;
+}
+
+function logout() { localStorage.removeItem(TOKEN_KEY); location.reload(); }
+
+async function getUserIdBySlug(slug) {
+  const token = localStorage.getItem(TOKEN_KEY);
+  if (!token) throw new Error("Giriş yapılmamış. Sayfayı yenile.");
+  const res = await fetch("https://api.kick.com/public/v1/channels?slug=" + encodeURIComponent(slug), {
+    headers: { "Authorization": "Bearer " + token }
+  });
+  if (res.status === 401) throw new Error("Giriş süresi dolmuş. Çıkış yapıp tekrar giriş dene.");
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error("API hatası (" + res.status + "): " + (data.message || "bilinmeyen hata"));
+  if (data.data && data.data.length > 0) return data.data[0].broadcaster_user_id;
+  throw new Error("Kullanıcı bulunamadı: " + slug);
+}
+
+function showLoggedInUI() {
+  document.getElementById('loginRow').classList.add('hidden');
+  document.getElementById('connectForm').classList.remove('hidden');
+  renderRecentChips();
+  if (!logoutBtnAdded) addLogoutRow();
+}
+
+/* ===================== Recent channels ===================== */
+function getRecent() { try { return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]"); } catch(e) { return []; } }
+function addRecent(slug) {
+  let list = getRecent().filter(s => s !== slug);
+  list.unshift(slug); list = list.slice(0, 6);
+  localStorage.setItem(RECENT_KEY, JSON.stringify(list));
+}
+function renderRecentChips() {
+  const box = document.getElementById('recentChips');
+  box.innerHTML = getRecent().map(s => `<button onclick="quickConnect('${s}')">${escapeHtml(s)}</button>`).join('');
+}
+function quickConnect(slug) { document.getElementById('channelSlug').value = slug; connectChat(); }
+
+/* ===================== Bağlantı ===================== */
+async function connectChat() {
+  const slug = document.getElementById('channelSlug').value.trim().toLowerCase();
+  myUsername = document.getElementById('myUsername').value.trim().toLowerCase();
+  if (!slug) { toast("Kanal kullanıcı adını yaz.", "err"); return; }
+  toast("Bağlanılıyor...", "ok");
+
+  try {
+    broadcasterId = await getUserIdBySlug(slug);
+    broadcasterSlug = slug;
+
+    const infoRes = await fetch("https://kick.com/api/v2/channels/" + encodeURIComponent(slug));
+    if (!infoRes.ok) throw new Error("Kanal bilgisi alınamadı.");
+    const info = await infoRes.json();
+    const chatroomId = info.chatroom && info.chatroom.id;
+    if (!chatroomId) throw new Error("Chatroom ID bulunamadı.");
+
+    document.getElementById('viewerCount').textContent =
+      (info.livestream && info.livestream.viewer_count != null) ? "· " + info.livestream.viewer_count + " izleyici" : "";
+
+    connectPusher(chatroomId);
+    loadChannelEmotes(slug);
+    addRecent(slug);
+
+    document.getElementById('connectForm').classList.add('hidden');
+    document.getElementById('connectedBar').classList.remove('hidden');
+    document.getElementById('connectedName').textContent = slug;
+    document.getElementById('inputBar').classList.remove('hidden');
+    document.getElementById('emptyState').classList.add('hidden');
+    document.getElementById('chatFeed').innerHTML = "";
+
+    if (!logoutBtnAdded) addLogoutRow();
+
+    if ("Notification" in window && Notification.permission === "default") Notification.requestPermission();    toast("Bağlandı: " + slug, "ok");
+  } catch (e) {
+    toast(e.message, "err");
+  }
+}
+
+function connectPusher(chatroomId) {
+  pusherClient = new Pusher(PUSHER_KEY, { cluster: PUSHER_CLUSTER });
+  pusherChannel = pusherClient.subscribe("chatrooms." + chatroomId + ".v2");
+
+  pusherChannel.bind("App\\Events\\ChatMessageEvent", function(raw) {
+    let data = raw;
+    if (typeof raw === "string") { try { data = JSON.parse(raw); } catch(e) { return; } }
+    addChatMessage(data);
+  });
+
+  // Chat mesajı olmayan HER olayı (hediye abonelik, kicks, vs.) yakalayıp
+  // debug moduna kaydediyoruz — henüz hangi event isimleriyle geldiğini
+  // kesin bilmediğimiz için, en azından ekranda genel bir bilgi olarak gösteriyoruz.
+  pusherChannel.bind_global(function(eventName, raw) {
+    if (eventName === "App\\Events\\ChatMessageEvent" || eventName.startsWith("pusher:")) return;
+    let data = raw;
+    if (typeof raw === "string") { try { data = JSON.parse(raw); } catch(e) { data = raw; } }
+
+    if (settings.debugMode) {
+      debugLog.unshift({ username: "[EVENT] " + eventName, content: "", raw: JSON.stringify(data, null, 2) });
+      debugLog = debugLog.slice(0, 15);
+    }
+    renderSystemEvent(eventName, data);
+  });
+
+  pusherClient.connection.bind('state_change', function(states) {
+    if (states.current === 'connected') {
+      toast("Bağlantı aktif", "ok");
+      document.getElementById('reconnectBtn').classList.add('hidden');
+      const dot = document.getElementById('liveDot'); if (dot) dot.style.background = "var(--accent)";
+    }
+    if (states.current === 'disconnected' || states.current === 'failed') {
+      toast("Bağlantı koptu", "err");
+      document.getElementById('reconnectBtn').classList.remove('hidden');
+      const dot = document.getElementById('liveDot'); if (dot) dot.style.background = "#ff8080";
+    }
+  });
+}
+
+// Sub hediyesi / Kicks gibi olayların TAM formatını henüz doğrulayamadık,
+// bu yüzden olabildiğince genel bir şekilde göstermeye çalışıyoruz.
+function renderSystemEvent(eventName, data) {
+  let label = eventName.split("\\").pop().replace(/([A-Z])/g, ' $1').trim();
+  let extra = "";
+  try {
+    const flat = JSON.stringify(data);
+    const userMatch = data.username || (data.sender && data.sender.username) || (data.gifter && data.gifter.username);
+    const qty = data.quantity || data.amount || data.gifted_quantity;
+    if (userMatch) extra = userMatch + (qty ? " · " + qty : "");
+  } catch(e) {}
+
+  const div = document.createElement('div');
+  div.className = 'msg';
+  div.innerHTML = `<div class="sysMsg">${ICO.spark} ${escapeHtml(label)}${extra ? " — " + escapeHtml(extra) : ""}</div>`;
+  messageQueue.push({ el: div, isMention: false, username: "", content: "" });
+}
+
+function disconnectChat() { location.reload(); }
+
+function addLogoutRow() {
+  logoutBtnAdded = true;
+  const btn = document.createElement('button');
+  btn.textContent = "Çıkış Yap";
+  btn.style.cssText = "margin-top:10px;width:100%;background:#1e1215;color:#ff8080;border:1px solid #3a1616;border-radius:12px;padding:10px;font-size:13px;";
+  btn.onclick = logout;
+  document.getElementById('header').appendChild(btn);
+}
+
+async function loadChannelEmotes(slug) {
+  channelEmotes = [];
+  try {
+    const res = await fetch("https://kick.com/emotes/" + encodeURIComponent(slug));
+    if (!res.ok) return;
+    const data = await res.json();
+    const packs = Array.isArray(data) ? data : [data];
+    packs.forEach(pack => {
+      if (pack && Array.isArray(pack.emotes)) {
+        pack.emotes.forEach(em => { if (em && em.id && em.name) channelEmotes.push({ id: em.id, name: em.name }); });
+      }
+    });
+  } catch (e) {}
+}
+async function load7tvGlobalEmotes() {
+  try {
+    const res = await fetch("https://7tv.io/v3/emotes/global");
+    if (!res.ok) return;
+    const data = await res.json();
+    (data.emotes || []).forEach(em => {
+      if (!em.name || !em.id) return;
+      thirdPartyEmoteMap[em.name.toLowerCase()] = "https://cdn.7tv.app/emote/" + em.id + "/2x.webp";
+    });
+  } catch (e) {}
+}
+
+/* ===================== Mesaj render ===================== */
+function renderMessageContent(content) {
+  const safe = escapeHtml(content);
+  const combined = /\[emote:(\d+):([^\]]+)\]|(https?:\/\/[^\s<]+)|\b([A-Za-z0-9_]{2,25})\b/g;
+  return safe.replace(combined, (match, emoteId, emoteName, url, word) => {
+    if (emoteId) {
+      if (!settings.showEmotes) return `:${emoteName}:`;
+      return `<img class="emote-img" src="https://files.kick.com/emotes/${emoteId}/fullsize" alt="${emoteName}" title="${emoteName}">`;
+    }
+    if (url) return `<a href="${url}" target="_blank" rel="noopener">${url}</a>`;
+    if (word) {
+      if (settings.showEmotes) {
+        const emUrl = thirdPartyEmoteMap[word.toLowerCase()];
+        if (emUrl) return `<img class="emote-img" src="${emUrl}" alt="${word}" title="${word}">`;
+      }
+      return word;
+    }
+    return match;
+  });
+}
+
+function badgeHtml(identity) {
+  if (!identity) return "";
+  // Kick'in gerçek görsel rozetleri (level, sub, vs.) varsa onları kullan
+  if (Array.isArray(identity.badges_v2) && identity.badges_v2.length) {
+    return identity.badges_v2.slice(0, 3).map(b => {
+      if (b.image_url) return `<img src="${b.image_url}" title="${escapeHtml(b.name||'')}" style="height:14px;vertical-align:-2px;margin-right:3px;">`;
+      return "";
+    }).join("");
+  }
+  if (!Array.isArray(identity.badges)) return "";
+  return identity.badges.map(b => {
+    const type = (b.type || "").toLowerCase();
+    if (type.includes("broadcaster")) return `<span class="badge" style="background:#8b5cf6;color:#fff;">YAYINCI</span>`;
+    if (type.includes("moderator")) return `<span class="badge mod">MOD</span>`;
+    if (type.includes("vip")) return `<span class="badge vip">VIP</span>`;
+    if (type.includes("subscriber") || type.includes("sub")) return `<span class="badge sub">SUB</span>`;
+    if (type.includes("og")) return `<span class="badge og">OG</span>`;
+    return "";
+  }).join("");
+}
+
+/* ===================== Chat akışı (performans için kuyruklu) ===================== */
+function setupScrollTracking() {
+  document.getElementById('chatFeed').addEventListener('scroll', () => {
+    const feed = document.getElementById('chatFeed');
+    isNearBottom = (feed.scrollHeight - feed.scrollTop - feed.clientHeight) < 80;
+    if (isNearBottom) { unreadCount = 0; document.getElementById('jumpToBottom').style.display = 'none'; }
+  });
+
+  // Mesaj tıklama/çift tıklama için TEK delege dinleyici — mesaj içinde tırnak
+  // gibi özel karakterler olsa da asla kırılmayan, güvenilir yöntem.
+  const feedEl = document.getElementById('chatFeed');
+  const openFromLine = (line) => {
+    const uid = line.dataset.userid ? parseInt(line.dataset.userid) : null;
+    openSheet(uid, line.dataset.uname, line.dataset.msgid, line.dataset.msgcontent);
+  };
+  feedEl.addEventListener('click', (e) => {
+    const uname = e.target.closest('.uname');
+    if (uname) { const line = uname.closest('.msg-line'); if (line) openFromLine(line); }
+  });
+  feedEl.addEventListener('dblclick', (e) => {
+    const line = e.target.closest('.msg-line');
+    if (line) openFromLine(line);
+  });
+}
+function scrollToBottomForced() {
+  const feed = document.getElementById('chatFeed');
+  feed.scrollTop = feed.scrollHeight;
+  isNearBottom = true; unreadCount = 0;
+  document.getElementById('jumpToBottom').style.display = 'none';
+}
+function flushMessageQueue() {
+  if (!messageQueue.length) return;
+  const feed = document.getElementById('chatFeed');
+  const frag = document.createDocumentFragment();
+  let mention = null;
+
+  messageQueue.forEach(m => { frag.appendChild(m.el); if (m.isMention) mention = m; });
+  const count = messageQueue.length;
+  messageQueue = [];
+
+  feed.appendChild(frag);
+  while (feed.children.length > 200) feed.removeChild(feed.firstChild);
+
+  if (isNearBottom) { feed.scrollTop = feed.scrollHeight; }
+  else {
+    unreadCount += count;
+    const btn = document.getElementById('jumpToBottom');
+    const txt = document.getElementById('jumpToBottomText');
+    if (txt) txt.textContent = unreadCount + " yeni mesaj";
+    btn.style.display = 'block';
+  }
+
+  if (mention) {
+    const quiet = isQuietHours();
+    if (settings.notifyOn && !quiet) {
+      playBeep();
+      if (navigator.vibrate) navigator.vibrate([180, 60, 180]);
+    }
+    if (settings.notifyOn && !quiet && "Notification" in window && Notification.permission === "granted") {
+      new Notification("Etiketlendin: " + mention.username, { body: mention.content });
+    }
+  }
+}
+function isQuietHours() {
+  if (!settings.quietOn) return false;
+  const h = new Date().getHours();
+  if (settings.quietStart <= settings.quietEnd) return h >= settings.quietStart && h < settings.quietEnd;
+  return h >= settings.quietStart || h < settings.quietEnd;
+}
+setInterval(flushMessageQueue, 80);
+
+function clearChatView() { document.getElementById('chatFeed').innerHTML = ""; messageQueue = []; toast("Sohbet temizlendi", "ok"); }
+
+/* Arama / filtreleme */
+function toggleSearch() {
+  const bar = document.getElementById('searchBar');
+  bar.classList.toggle('hidden');
+  if (!bar.classList.contains('hidden')) document.getElementById('searchInput').focus();
+  else { document.getElementById('searchInput').value = ""; applySearch(); }
+}
+function applySearch() {
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  document.querySelectorAll('#chatFeed .msg').forEach(el => {
+    if (!q) { el.style.display = ""; return; }
+    const match = (el.dataset.username || "").includes(q) || (el.dataset.content || "").includes(q);
+    el.style.display = match ? "" : "none";
+  });
+}
+
+/* Panik / gizle */
+let panicOn = false;
+function togglePanic() {
+  panicOn = !panicOn;
+  document.getElementById('chatFeed').style.filter = panicOn ? "blur(10px)" : "";
+  document.getElementById('panicBtn').innerHTML = panicOn ? ICO.eye : ICO.eyeOff;
+  document.getElementById('inputBar').style.opacity = panicOn ? "0.3" : "1";
+}
+
+/* Yeniden bağlanma */
+function manualReconnect() {
+  if (!broadcasterSlug) return;
+  toast("Yeniden bağlanılıyor...", "ok");
+  if (pusherClient) { try { pusherClient.disconnect(); } catch(e){} }
+  fetch("https://kick.com/api/v2/channels/" + encodeURIComponent(broadcasterSlug)).then(r => r.json()).then(info => {
+    const chatroomId = info.chatroom && info.chatroom.id;
+    if (chatroomId) { connectPusher(chatroomId); document.getElementById('reconnectBtn').classList.add('hidden'); }
+  });
+}
+
+/* İstatistikler */
+function openStats() {
+  const overlay = document.createElement('div');
+  overlay.id = 'overlay';
+  overlay.onclick = (e) => { if (e.target.id === 'overlay') closeSheet(); };
+  const mins = Math.max(1, Math.round((Date.now() - sessionStart) / 60000));
+  const topWords = Object.entries(wordFreq).sort((a,b) => b[1]-a[1]).slice(0, 8);
+  const topWordsHtml = topWords.length
+    ? topWords.map(([w,c]) => `<span style="background:#1b1b1e;border:1px solid #262629;border-radius:14px;padding:5px 11px;font-size:12.5px;margin:3px;display:inline-block;">${escapeHtml(w)} <b style="color:var(--accent)">${c}</b></span>`).join('')
+    : `<p style="color:#666;font-size:13px;">Henüz yeterli veri yok.</p>`;
+
+  const topChatters = Object.entries(chatterCounts).sort((a,b) => b[1]-a[1]).slice(0, 5);
+  const topChattersHtml = topChatters.length
+    ? topChatters.map(([u,c], i) => `<div class="toggleRow"><span>${i===0?ICO.crown+' ':''}${escapeHtml(u)}</span><b style="color:var(--accent)">${c} mesaj</b></div>`).join('')
+    : `<p style="color:#666;font-size:13px;">Henüz yeterli veri yok.</p>`;
+
+  overlay.innerHTML = `
+    <div id="sheet">
+      <h3>${ICO.stats} Oturum İstatistikleri</h3>
+      <div class="settingSection">
+        <div class="toggleRow"><span>Toplam görülen mesaj</span><b>${totalMessagesSeen}</b></div>
+        <div class="toggleRow"><span>Alınan mod aksiyonu</span><b>${actionLog.length}</b></div>
+        <div class="toggleRow"><span>Oturum süresi</span><b>${mins} dk</b></div>
+        <div class="toggleRow"><span>Zirve hız</span><b>${peakRate} mesaj/dk</b></div>
+      </div>
+      <div class="settingSection">
+        <p class="sheetLabel">${ICO.crown} En Aktif Chatler (bu oturumda)</p>
+        ${topChattersHtml}
+      </div>
+      <div class="settingSection">
+        <p class="sheetLabel">${ICO.trend} Trend Kelimeler (bu oturumda)</p>
+        <div>${topWordsHtml}</div>
+      </div>
+      <button class="opt" onclick="exportChatLog()">${ICO.download} Sohbet günlüğünü indir (.txt)</button>
+      <button id="sheetCancel" onclick="closeSheet()">Kapat</button>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+function exportChatLog() {
+  const lines = [];
+  document.querySelectorAll('#chatFeed .msg').forEach(el => {
+    const u = el.dataset.username, c = el.dataset.content;
+    if (u) lines.push(u + ": " + c);
+  });
+  const blob = new Blob([lines.join("\n")], { type: "text/plain" });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = "kick-chat-log-" + Date.now() + ".txt";
+  a.click();
+  toast("İndirildi", "ok");
+}
+
+function playBeep() {
+  try {
+    const freqMap = { beep: 880, chime: 1200, low: 440 };
+    const freq = freqMap[settings.notifSound] || 880;
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator(); const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = freq; gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    osc.start(); osc.stop(ctx.currentTime + 0.2);
+  } catch(e) {}
+}
+
+function checkAutoMod(content, userId, username) {
+  if (!userId || settings.whitelistUsers.includes(username.toLowerCase())) return;
+
+  if (settings.autoModOn && settings.bannedWords.length) {
+    const lower = content.toLowerCase();
+    const hit = settings.bannedWords.find(w => lower.includes(w.word.toLowerCase()));
+    if (hit) {
+      currentSheetUser = { id: userId, username: username };
+      if (hit.action === 'ban') doModAction('ban', null); else doModAction('timeout', hit.duration || 10);
+      toast("Otomod: " + username + " (yasaklı kelime)", "err");
+      return;
+    }
+  }
+
+  if (settings.capsSpamOn) {
+    const letters = content.replace(/[^A-Za-zÇĞİÖŞÜçğıöşü]/g, '');
+    if (letters.length >= 10) {
+      const upper = letters.replace(/[^A-ZÇĞİÖŞÜ]/g, '');
+      if (upper.length / letters.length > 0.7) {
+        currentSheetUser = { id: userId, username: username };
+        doModAction('timeout', settings.autoDuration);
+        toast("Otomod: " + username + " (BÜYÜK HARF spam)", "err");
+        return;
+      }
+    }
+  }
+
+  if (settings.emoteSpamOn) {
+    const tokens = content.match(/\[emote:\d+:[^\]]+\]/g) || [];
+    if (tokens.length >= 6) {
+      currentSheetUser = { id: userId, username: username };
+      doModAction('timeout', settings.autoDuration);
+      toast("Otomod: " + username + " (emote spam)", "err");
+      return;
+    }
+  }
+
+  if (settings.linkAutoOn && /https?:\/\//i.test(content)) {
+    currentSheetUser = { id: userId, username: username };
+    doModAction('timeout', settings.autoDuration);
+    toast("Otomod: " + username + " (link paylaşımı)", "err");
+    return;
+  }
+
+  if (settings.repeatSpamOn) {
+    lastMessagesByUser[username] = lastMessagesByUser[username] || [];
+    const arr = lastMessagesByUser[username];
+    arr.push({ content, time: Date.now() });
+    lastMessagesByUser[username] = arr.filter(m => Date.now() - m.time < 15000).slice(-6);
+    const recentSame = lastMessagesByUser[username].filter(m => m.content === content);
+    if (recentSame.length >= 3) {
+      currentSheetUser = { id: userId, username: username };
+      doModAction('timeout', settings.autoDuration);
+      toast("Otomod: " + username + " (tekrarlayan mesaj)", "err");
+      return;
+    }
+  }
+}
+let lastMessagesByUser = {};
+
+function isPureEmoteMessage(content) {
+  let stripped = content.replace(/\[emote:\d+:[^\]]+\]/g, '').trim();
+  if (stripped === "") return true;
+  const words = stripped.split(/\s+/).filter(Boolean);
+  if (!words.length) return true;
+  return words.every(w => thirdPartyEmoteMap[w.toLowerCase()]);
+}
+
+function addChatMessage(data) {
+  msgTimestamps.push(Date.now());
+  totalMessagesSeen++;
+  const username = (data.sender && data.sender.username) || "bilinmeyen";
+  if (settings.mutedUsers.includes(username.toLowerCase())) return;
+  const content = data.content || "";
+  if (!settings.showEmotes && isPureEmoteMessage(content)) return;
+  const userId = data.sender && data.sender.id;
+  const msgId = data.id || data.message_id || "";
+  const identity = data.sender && data.sender.identity;
+  const time = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', hour12: !settings.time24h });
+  const isMention = myUsername && content.toLowerCase().includes(myUsername);
+
+  if (settings.debugMode) {
+    debugLog.unshift({ username, content, raw: JSON.stringify(data, null, 2) });
+    debugLog = debugLog.slice(0, 15);
+  }
+
+  // Yanıt (reply) ise orijinal mesajı da göstermeye çalış (kesin alan adı
+  // doğrulanamadı, olası birkaç yapıyı deniyoruz — bulamazsa sessizce atlar)
+  let replyHtml = "";
+  const meta = data.metadata || data.reply_metadata || {};
+  const origSender = (meta.original_sender && meta.original_sender.username) || (meta.replied_to && meta.replied_to.username);
+  const origMsg = (meta.original_message && meta.original_message.content) || (meta.replied_to && meta.replied_to.content);
+  if (origSender || origMsg) {
+    replyHtml = `<div class="replyQuote">${ICO.reply} <b>${escapeHtml(origSender || '?')}</b>: ${escapeHtml(origMsg || '')}</div>`;
+  }
+
+  trackWords(content);
+
+  const star = settings.starUsers.includes(username.toLowerCase()) ? `<span title="Favori/Co-mod" style="color:#f7a600;">★</span> ` : "";
+  chatterCounts[username] = (chatterCounts[username] || 0) + 1;
+
+  const div = document.createElement('div');
+  div.className = 'msg' + (isMention ? ' mention' : '') + (settings.starUsers.includes(username.toLowerCase()) ? ' starred' : '');
+  div.dataset.username = username.toLowerCase();
+  div.dataset.content = content.toLowerCase();
+  div.innerHTML = `${replyHtml}<div class="msg-line" data-userid="${userId||''}" data-uname="${escapeHtml(username)}" data-msgid="${escapeHtml(msgId)}" data-msgcontent="${escapeHtml(content)}"><span class="msg-time">${time}</span>${badgeHtml(identity)}${star}<span class="uname" style="color:${avatarColor(username)}">${escapeHtml(username)}:</span> <span class="txt">${renderMessageContent(content)}</span></div>`;
+
+  messageQueue.push({ el: div, isMention, username, content });
+  checkAutoMod(content, userId, username);
+}
+
+function trackWords(content) {
+  const words = content.toLowerCase().replace(/\[emote:[^\]]+\]/g, '').split(/\s+/).filter(w => w.length >= 4 && !/^https?:/.test(w));
+  words.forEach(w => { wordFreq[w] = (wordFreq[w] || 0) + 1; });
+}
+
+const AVATAR_COLORS = ["var(--accent)","#f7a600","#e0245e","#4ea9e8","#c084fc","#4ade80","#fbbf24","#f87171"];
+function avatarColor(name) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
+/* ===================== Aksiyon menüsü ===================== */
+function openSheet(userId, username, msgId, content) {
+  currentSheetUser = { id: userId, username: username, msgId: msgId, content: content || "" };
+  const uLower = username.toLowerCase();
+  const isWhitelisted = settings.whitelistUsers.includes(uLower);
+  const isMuted = settings.mutedUsers.includes(uLower);
+  const isStarred = settings.starUsers.includes(uLower);
+  const existingNote = (settings.userNotes || {})[uLower] || "";
+  const overlay = document.createElement('div');
+  overlay.id = 'overlay';
+  overlay.onclick = (e) => { if (e.target.id === 'overlay') closeSheet(); };
+  overlay.innerHTML = `
+    <div id="sheet">
+      <h3>${ICO.user} ${escapeHtml(username)}</h3>
+      ${existingNote ? `<div class="replyQuote" style="margin-bottom:12px;">${ICO.note} <b>Not:</b> ${escapeHtml(existingNote)}</div>` : ""}
+      <button class="opt" onclick="quickTimeout(10)">${ICO.clock} 10 dakika Timeout</button>
+      <button class="opt" onclick="quickTimeout(30)">${ICO.clock} 30 dakika Timeout</button>
+      <button class="opt" onclick="quickTimeout(60)">${ICO.clock} 1 saat Timeout</button>
+      <div class="customRow">
+        <input id="customDuration" type="number" placeholder="Özel süre (dk)">
+        <button onclick="customTimeout()">Uygula</button>
+      </div>
+      <button class="opt danger" onclick="quickBan()">${ICO.ban} Kalıcı Ban</button>
+      <button class="opt danger" onclick="deleteMessage(${JSON.stringify(msgId)})">${ICO.trash} Bu mesajı sil</button>
+      <button class="opt" onclick="startReply()">${ICO.reply} Yanıtla</button>
+      <button class="opt" onclick="pinCurrentMessage()">${ICO.pin} Bu mesajı sabitle</button>
+      <button class="opt" onclick="toggleListMembership('mutedUsers')">${ICO.volumeMute} ${isMuted ? "Sessize almayı kaldır" : "Sessize al (sadece bende)"}</button>
+      <button class="opt" onclick="toggleListMembership('whitelistUsers')">${ICO.shield} ${isWhitelisted ? "Güvenilirden çıkar" : "Güvenilir olarak işaretle"}</button>
+      <button class="opt" onclick="toggleListMembership('starUsers')">${ICO.star} ${isStarred ? "Favoriden çıkar" : "Favori/Co-mod olarak işaretle"}</button>
+      <div class="customRow">
+        <input id="noteInput" placeholder="Bu kullanıcı için not yaz..." value="${escapeHtml(existingNote)}">
+        <button onclick="saveUserNote()">${ICO.note}</button>
+      </div>
+      <button class="opt" onclick="copyUsername()">${ICO.copy} Kullanıcı adını kopyala</button>
+      <button class="opt" onclick="openProfile()">${ICO.link} Kick profilini aç</button>
+      <button id="sheetCancel" onclick="closeSheet()">İptal</button>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+function saveUserNote() {
+  const note = document.getElementById('noteInput').value.trim();
+  settings.userNotes = settings.userNotes || {};
+  const uLower = currentSheetUser.username.toLowerCase();
+  if (note) settings.userNotes[uLower] = note; else delete settings.userNotes[uLower];
+  saveSettings();
+  toast("Not kaydedildi", "ok");
+  closeSheet();
+}
+function toggleListMembership(listKey) {
+  const uLower = currentSheetUser.username.toLowerCase();
+  const list = settings[listKey];
+  const idx = list.indexOf(uLower);
+  if (idx >= 0) list.splice(idx, 1); else list.push(uLower);
+  saveSettings();
+  toast((idx >= 0 ? "Kaldırıldı" : "Eklendi") + ": " + currentSheetUser.username, "ok");
+  closeSheet();
+}
+function copyUsername() {
+  if (navigator.clipboard) navigator.clipboard.writeText(currentSheetUser.username).then(() => toast("Kopyalandı", "ok"));
+  closeSheet();
+}
+function openProfile() {
+  window.open("https://kick.com/" + encodeURIComponent(currentSheetUser.username), "_blank");
+  closeSheet();
+}
+function closeSheet() { const o = document.getElementById('overlay'); if (o) o.remove(); }
+async function quickTimeout(m) { await doModAction('timeout', m); closeSheet(); }
+async function customTimeout() {
+  const val = document.getElementById('customDuration').value.trim();
+  if (!val) { toast("Süre gir.", "err"); return; }
+  await doModAction('timeout', parseInt(val)); closeSheet();
+}
+async function quickBan() { await doModAction('ban', null); closeSheet(); }
+function startReply() {
+  replyTarget = { id: currentSheetUser.msgId, username: currentSheetUser.username };
+  document.getElementById('replyPreview').classList.remove('hidden');
+  document.getElementById('replyText').innerHTML = `${ICO.reply} Yanıtlanıyor: <b>${escapeHtml(currentSheetUser.username)}</b>`;
+  document.getElementById('msgInput').focus();
+  closeSheet();
+}
+function cancelReply() { replyTarget = null; document.getElementById('replyPreview').classList.add('hidden'); }
+
+function pinCurrentMessage() {
+  pinnedMessages = pinnedMessages.filter(p => p.msgId !== currentSheetUser.msgId);
+  pinnedMessages.unshift({ msgId: currentSheetUser.msgId, username: currentSheetUser.username, content: currentSheetUser.content });
+  pinnedMessages = pinnedMessages.slice(0, 3);
+  renderPinnedBar();
+  closeSheet();
+  toast("Sabitlendi (sadece bu panelde görünür)", "ok");
+}
+function unpinMessage(msgId) {
+  pinnedMessages = pinnedMessages.filter(p => p.msgId !== msgId);
+  renderPinnedBar();
+}
+function renderPinnedBar() {
+  const bar = document.getElementById('pinnedBar');
+  if (!pinnedMessages.length) { bar.classList.add('hidden'); bar.innerHTML = ""; return; }
+  bar.classList.remove('hidden');
+  bar.innerHTML = pinnedMessages.map(p => `
+    <div class="pinnedItem" data-pincontent="${escapeHtml(p.content)}" data-pinid="${escapeHtml(p.msgId)}">
+      <span>${ICO.pin} <b>${escapeHtml(p.username)}</b>: ${escapeHtml(p.content)}</span>
+      <span style="display:flex;gap:4px;">
+        <button class="pinCopyBtn">${ICO.copy}</button>
+        <button class="pinRemoveBtn">${ICO.x}</button>
+      </span>
+    </div>`).join('');
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const bar = document.getElementById('pinnedBar');
+  if (bar) bar.addEventListener('click', (e) => {
+    const item = e.target.closest('.pinnedItem');
+    if (!item) return;
+    if (e.target.closest('.pinCopyBtn')) copyPinned(item.dataset.pincontent);
+    else if (e.target.closest('.pinRemoveBtn')) unpinMessage(item.dataset.pinid);
+  });
+});
+function copyPinned(text) {
+  if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => toast("Kopyalandı", "ok"));
+}
+
+let actionLog = loadActionLog();
+function loadActionLog() { try { return JSON.parse(localStorage.getItem("kmp_action_log") || "[]"); } catch(e) { return []; } }
+function saveActionLog() { localStorage.setItem("kmp_action_log", JSON.stringify(actionLog.slice(0, 50))); }
+
+async function deleteMessage(msgId) {
+  if (!msgId) { toast("Bu mesaj için ID bulunamadı, silinemiyor.", "err"); return; }
+  const token = localStorage.getItem(TOKEN_KEY);
+  const res = await fetch("https://api.kick.com/public/v1/chat/" + encodeURIComponent(msgId), {
+    method: "DELETE", headers: { "Authorization": "Bearer " + token }
+  });
+  if (res.ok) toast("Mesaj silindi", "ok");
+  else if (res.status === 403 || res.status === 401) toast("Yetki hatası. Çıkış yapıp tekrar giriş dene (yeni izin gerekli).", "err");
+  else { const err = await res.json().catch(() => ({})); toast(err.message || res.status, "err"); }
+  closeSheet();
+}
+
+async function doModAction(type, durationMin) {
+  const token = localStorage.getItem(TOKEN_KEY);
+  const bodyObj = { broadcaster_user_id: broadcasterId, user_id: currentSheetUser.id };
+  if (type === 'timeout') bodyObj.duration = durationMin;
+  const res = await fetch("https://api.kick.com/public/v1/moderation/bans", {
+    method: "POST", headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" }, body: JSON.stringify(bodyObj)
+  });
+  if (res.ok) {
+    toast(currentSheetUser.username + " → " + (type === 'ban' ? "banlandı" : durationMin + " dk timeout"), "ok");
+    actionLog.unshift({ username: currentSheetUser.username, userId: currentSheetUser.id, type, duration: durationMin, time: new Date().toLocaleTimeString('tr-TR', {hour:'2-digit',minute:'2-digit'}) });
+    actionLog = actionLog.slice(0, 30);
+    saveActionLog();
+    const badge = document.getElementById('historyBadge');
+    if (badge) { badge.style.display = 'block'; badge.textContent = actionLog.length; }
+  }
+  else if (res.status === 403 || res.status === 401) toast("Yetki hatası. Çıkış yapıp tekrar giriş dene.", "err");
+  else { const err = await res.json().catch(() => ({})); toast(err.message || res.status, "err"); }
+}
+
+async function undoAction(userId, username) {
+  const token = localStorage.getItem(TOKEN_KEY);
+  const res = await fetch("https://api.kick.com/public/v1/moderation/bans", {
+    method: "DELETE", headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+    body: JSON.stringify({ broadcaster_user_id: broadcasterId, user_id: userId })
+  });
+  if (res.ok) { toast(username + " için geri alındı", "ok"); closeSheet(); openActionLog(); }
+  else toast("Geri alınamadı", "err");
+}
+
+function openActionLog() {
+  const badge = document.getElementById('historyBadge'); if (badge) badge.style.display = 'none';
+  const overlay = document.createElement('div');
+  overlay.id = 'overlay';
+  overlay.onclick = (e) => { if (e.target.id === 'overlay') closeSheet(); };
+  let list;
+  if (!actionLog.length) {
+    list = `<p style="color:#9c9ca3;font-size:13px;">Bu oturumda henüz işlem yapılmadı.</p>`;
+  } else {
+    list = actionLog.map(a => `
+      <div class="wordRow">
+        <span>${a.time} · <b style="color:${avatarColor(a.username)}">${escapeHtml(a.username)}</b> — ${a.type === 'ban' ? 'Kalıcı ban' : a.duration + ' dk timeout'}</span>
+        <button onclick="undoAction(${a.userId}, ${JSON.stringify(a.username)})" style="color:#7cc4f7;font-size:11px;width:auto;background:#1b2530;border-radius:8px;padding:5px 8px;">${ICO.undo} Geri al</button>
+      </div>`).join('');
+  }
+  overlay.innerHTML = `<div id="sheet"><h3>${ICO.history} Moderasyon Geçmişi</h3>${list}<button id="sheetCancel" onclick="closeSheet()">Kapat</button></div>`;
+  document.body.appendChild(overlay);
+}
+
+/* ===================== Mesaj gönderme ===================== */
+let sendLog = [];
+let lastSendTime = 0;
+
+async function sendMessage() {
+  const inputEl = document.getElementById('msgInput');
+  const text = inputEl.value.trim();
+  if (!text) return;
+  if (!broadcasterId) { toast("Önce bir kanala bağlanmalısın.", "err"); return; }
+
+  const now = Date.now();
+  if (now - lastSendTime < 700) {
+    toast("Çok hızlı gönderiyorsun, bir saniye bekle.", "err");
+    return;
+  }
+  lastSendTime = now;
+
+  const sendBtn = document.getElementById('sendBtn');
+  if (sendBtn.disabled) return; // zaten gönderim sürüyor
+  sendBtn.disabled = true;
+  const originalLabel = sendBtn.textContent;
+  sendBtn.textContent = "...";
+
+  // Buton hiçbir sebeple kalıcı kilitli kalmasın diye güvenlik ağı
+  const safetyTimer = setTimeout(() => {
+    sendBtn.disabled = false;
+    sendBtn.textContent = originalLabel;
+  }, 6000);
+
+  try {
+    const result = await attemptSend(text, 0);
+    if (result.ok) { inputEl.value = ""; cancelReply(); updateCharCount(); }
+  } catch (e) {
+    toast("Gönderim sırasında bağlantı hatası: " + e.message, "err");
+  } finally {
+    clearTimeout(safetyTimer);
+    sendBtn.disabled = false;
+    sendBtn.textContent = originalLabel;
+  }
+}
+
+async function attemptSend(text, retryCount) {
+  const token = localStorage.getItem(TOKEN_KEY);
+  const bodyObj = { broadcaster_user_id: broadcasterId, content: text, type: "user" };
+  if (replyTarget && replyTarget.id) bodyObj.reply_to_message_id = replyTarget.id;
+
+  let res, resData;
+  try {
+    res = await fetch("https://api.kick.com/public/v1/chat", {
+      method: "POST", headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" }, body: JSON.stringify(bodyObj)
+    });
+    resData = await res.json().catch(() => ({}));
+  } catch (networkErr) {
+    sendLog.unshift({ time: new Date().toLocaleTimeString('tr-TR'), text, status: "AĞ HATASI", ok: false, response: networkErr.message });
+    sendLog = sendLog.slice(0, 20);
+    toast("İnternet bağlantısı sorunu, tekrar dene.", "err");
+    return { ok: false };
+  }
+
+  sendLog.unshift({ time: new Date().toLocaleTimeString('tr-TR'), text, status: res.status, ok: res.ok, response: JSON.stringify(resData) });
+  sendLog = sendLog.slice(0, 20);
+
+  if (settings.debugMode) {
+    debugLog.unshift({ username: "[GÖNDERİM " + res.status + "]", content: text, raw: JSON.stringify(resData, null, 2) });
+    debugLog = debugLog.slice(0, 15);
+  }
+
+  if (res.ok) return { ok: true };
+
+  if (res.status === 429 && retryCount < 2) {
+    toast("Hız sınırına takıldı, birkaç saniye sonra tekrar denenecek...", "err");
+    await new Promise(r => setTimeout(r, 2500));
+    return attemptSend(text, retryCount + 1);
+  }
+
+  if (res.status === 429) toast("Kick hız sınırı: çok hızlı mesaj gönderiyorsun, birkaç saniye bekle.", "err");
+  else if (res.status === 403 || res.status === 401) toast("Mesaj izni yok. Çıkış yapıp tekrar giriş dene.", "err");
+  else toast("Gönderilemedi (" + res.status + "): " + (resData.message || "bilinmeyen hata"), "err");
+
+  return { ok: false };
+}
+
+function openSendLog() {
+  const overlay = document.createElement('div');
+  overlay.id = 'overlay';
+  overlay.onclick = (e) => { if (e.target.id === 'overlay') closeSheet(); };
+  let entries;
+  if (!sendLog.length) entries = `<p style="color:#9c9ca3;font-size:13px;">Henüz gönderim denemesi yok.</p>`;
+  else entries = sendLog.map(s => `
+    <div class="debugEntry">
+      <div class="dbHead"><span style="color:${s.ok?'#7ee787':'#ff8080'}">${s.time} · ${s.status}</span></div>
+      <div>${escapeHtml(s.text)}</div>
+      <div style="color:#666;margin-top:4px;">${escapeHtml(s.response)}</div>
+    </div>`).join('');
+  overlay.innerHTML = `<div id="sheet"><h3>${ICO.send} Gönderim Kayıtları</h3>${entries}<button id="sheetCancel" onclick="closeSheet()">Kapat</button></div>`;
+  document.body.appendChild(overlay);
+}
+
+/* ===================== Emote seçici ===================== */
+function getRecentEmotes() { try { return JSON.parse(localStorage.getItem(RECENT_EMOTES_KEY) || "[]"); } catch(e) { return []; } }
+function addRecentEmote(id, name) {
+  let list = getRecentEmotes().filter(e => e.id !== id);
+  list.unshift({ id, name }); list = list.slice(0, 12);
+  localStorage.setItem(RECENT_EMOTES_KEY, JSON.stringify(list));
+}
+function openEmotePicker() {
+  const panel = document.getElementById('emotePickerPanel');
+  if (!panel.classList.contains('hidden')) { panel.classList.add('hidden'); panel.innerHTML = ""; return; }
+
+  panel.innerHTML = `
+    <div class="epHead"><span class="sheetLabel" style="margin:0;">${ICO.smile} Emote Seç</span><button id="epCloseBtn">${ICO.x}</button></div>
+    <input id="emoteSearchInput" placeholder="Emote ara..." style="width:100%;padding:9px 12px;border-radius:10px;border:1px solid #262629;background:#0e0e11;color:#fff;font-size:13px;margin-bottom:10px;">
+    <div id="epRecentSection"></div>
+    <div id="epAllSection"></div>
+  `;
+  panel.classList.remove('hidden');
+
+  document.getElementById('epCloseBtn').addEventListener('click', closeEmotePicker);
+  document.getElementById('emoteSearchInput').addEventListener('input', (e) => renderEmoteGrids(e.target.value.trim().toLowerCase()));
+
+  // Emote görsellerine tıklamayı TEK bir dinleyici ile yakalıyoruz (event delegation).
+  // Bu sayede emote isminde tırnak/özel karakter olsa bile tıklama asla bozulmaz.
+  panel.addEventListener('click', (e) => {
+    const img = e.target.closest('.emoteOption');
+    if (img) insertEmote(img.dataset.id, img.dataset.name);
+  });
+
+  renderEmoteGrids("");
+}
+
+function buildEmoteGridHtml(list) {
+  return list.map(em =>
+    `<img class="emoteOption" data-id="${em.id}" data-name="${escapeHtml(em.name)}" src="https://files.kick.com/emotes/${em.id}/fullsize" title="${escapeHtml(em.name)}">`
+  ).join('');
+}
+
+function renderEmoteGrids(filter) {
+  const recent = getRecentEmotes().filter(em => !filter || em.name.toLowerCase().includes(filter));
+  const all = channelEmotes.filter(em => !filter || em.name.toLowerCase().includes(filter)).slice(0, 100);
+
+  const recentBox = document.getElementById('epRecentSection');
+  const allBox = document.getElementById('epAllSection');
+  if (!recentBox || !allBox) return;
+
+  recentBox.innerHTML = recent.length
+    ? `<p class="sheetLabel">Son Kullanılanlar</p><div class="emoteGrid" style="margin-bottom:8px;">${buildEmoteGridHtml(recent)}</div>`
+    : "";
+
+  if (!channelEmotes.length) {
+    allBox.innerHTML = `<p style="color:#9c9ca3;font-size:13px;">Bu kanal için emote bulunamadı.</p>`;
+  } else if (!all.length) {
+    allBox.innerHTML = `<p style="color:#9c9ca3;font-size:13px;">Eşleşen emote yok.</p>`;
+  } else {
+    allBox.innerHTML = `<p class="sheetLabel">Kanal Emoteleri</p><div class="emoteGrid">${buildEmoteGridHtml(all)}</div>`;
+  }
+}
+
+function closeEmotePicker() {
+  const panel = document.getElementById('emotePickerPanel');
+  panel.classList.add('hidden'); panel.innerHTML = "";
+}
+function insertEmote(id, name) {
+  const input = document.getElementById('msgInput');
+  input.value += (input.value && !input.value.endsWith(' ') ? ' ' : '') + `[emote:${id}:${name}] `;
+  addRecentEmote(id, name);
+  input.focus();
+  updateCharCount();
+}
+function updateCharCount() {
+  const el = document.getElementById('msgInput');
+  const box = document.getElementById('charCount');
+  const len = el.value.length;
+  box.textContent = len > 0 ? len + " / 500" : "";
+  box.style.color = len > 450 ? "#ff8080" : "#4a4a4f";
+}
+
+/* ===================== Ayarlar ===================== */
+function openSettings() {
+  const overlay = document.createElement('div');
+  overlay.id = 'overlay';
+  overlay.onclick = (e) => { if (e.target.id === 'overlay') closeSheet(); };
+  const wordsHtml = settings.bannedWords.map((w, i) => `
+    <div class="wordRow"><span>${escapeHtml(w.word)}</span>
+      <select onchange="updateWordAction(${i}, this.value)">
+        <option value="timeout" ${w.action==='timeout'?'selected':''}>Timeout ${w.duration||10}dk</option>
+        <option value="ban" ${w.action==='ban'?'selected':''}>Kalıcı Ban</option>
+      </select>
+      <button onclick="removeWord(${i})">${ICO.x}</button>
+    </div>`).join('');
+
+  const quickRepliesHtml = (settings.quickReplies || []).map((q, i) => `
+    <div class="wordRow"><span>${escapeHtml(q)}</span><button onclick="removeQuickReply(${i})">${ICO.x}</button></div>`).join('');
+
+  const listChip = (listKey, items) => items.map(u => `<span style="background:#1b1b1e;border:1px solid #262629;border-radius:14px;padding:5px 11px;font-size:12px;margin:3px;display:inline-flex;align-items:center;gap:6px;">${escapeHtml(u)} <button onclick="removeFromList('${listKey}','${u}')" style="width:auto;background:none;border:none;color:#ff8080;padding:0;font-size:13px;">${ICO.x}</button></span>`).join('') || '<p style="color:#666;font-size:13px;">Boş.</p>';
+
+  const accentColors = ["#53fc18","#2b90d9","#e0245e","#f7a600","#c084fc","#4ade80"];
+  const accentSwatches = accentColors.map(c => `<button onclick="setAccent('${c}')" style="width:32px;height:32px;border-radius:50%;background:${c};border:2px solid ${settings.accent===c?'#fff':'transparent'};margin-right:8px;"></button>`).join('');
+
+  overlay.innerHTML = `
+    <div id="sheet">
+      <h3>${ICO.gear} Ayarlar</h3>
+      <div class="settingSection">
+        <div class="toggleRow"><span>Emote görsellerini göster</span><button class="switch ${settings.showEmotes?'on':''}" onclick="toggleSetting('showEmotes', this)"><div class="dot"></div></button></div>
+        <div class="toggleRow"><span>Etiketlenince ses/bildirim/titreşim</span><button class="switch ${settings.notifyOn?'on':''}" onclick="toggleSetting('notifyOn', this)"><div class="dot"></div></button></div>
+        <div class="toggleRow"><span>24 saat formatı</span><button class="switch ${settings.time24h?'on':''}" onclick="toggleSetting('time24h', this)"><div class="dot"></div></button></div>
+        <div class="toggleRow"><span>Debug modu (emote sorunları için)</span><button class="switch ${settings.debugMode?'on':''}" onclick="toggleSetting('debugMode', this); toggleDebugUI();"><div class="dot"></div></button></div>
+      </div>
+
+      <div class="settingSection">
+        <p class="sheetLabel">Otomatik Moderasyon Kuralları</p>
+        <div class="toggleRow"><span>Yasaklı kelime otomodu</span><button class="switch ${settings.autoModOn?'on':''}" onclick="toggleSetting('autoModOn', this)"><div class="dot"></div></button></div>
+        <div class="toggleRow"><span>BÜYÜK HARF spam (deneysel)</span><button class="switch ${settings.capsSpamOn?'on':''}" onclick="toggleSetting('capsSpamOn', this)"><div class="dot"></div></button></div>
+        <div class="toggleRow"><span>Emote spam (6+ emote)</span><button class="switch ${settings.emoteSpamOn?'on':''}" onclick="toggleSetting('emoteSpamOn', this)"><div class="dot"></div></button></div>
+        <div class="toggleRow"><span>Link paylaşımını otomatik cezalandır</span><button class="switch ${settings.linkAutoOn?'on':''}" onclick="toggleSetting('linkAutoOn', this)"><div class="dot"></div></button></div>
+        <div class="toggleRow"><span>Tekrarlayan mesaj spam</span><button class="switch ${settings.repeatSpamOn?'on':''}" onclick="toggleSetting('repeatSpamOn', this)"><div class="dot"></div></button></div>
+        <div style="margin-top:10px;"><label style="font-size:12px;color:#9c9ca3;">Otomod timeout süresi (dk)</label>
+          <input type="number" value="${settings.autoDuration}" onchange="settings.autoDuration=parseInt(this.value)||10;saveSettings();" style="width:100%;padding:10px;border-radius:10px;border:1px solid #262629;background:#1b1b1e;color:#fff;margin-top:4px;"></div>
+      </div>
+
+      <div class="settingSection">
+        <p class="sheetLabel">Yasaklı Kelimeler</p>
+        <div id="wordList">${wordsHtml || '<p style="color:#666;font-size:13px;">Henüz kelime eklenmedi.</p>'}</div>
+        <div id="addWordRow"><input id="newWord" placeholder="kelime yaz..."><button onclick="addWord()">Ekle</button></div>
+      </div>
+
+      <div class="settingSection">
+        <p class="sheetLabel">${ICO.shield} Güvenilir Kullanıcılar (otomodtan muaf)</p>
+        <div>${listChip('whitelistUsers', settings.whitelistUsers)}</div>
+      </div>
+      <div class="settingSection">
+        <p class="sheetLabel">${ICO.volumeMute} Sessize Alınanlar (sadece bende)</p>
+        <div>${listChip('mutedUsers', settings.mutedUsers)}</div>
+      </div>
+      <div class="settingSection">
+        <p class="sheetLabel">${ICO.star} Favoriler / Co-modlar</p>
+        <div>${listChip('starUsers', settings.starUsers)}</div>
+      </div>
+
+      <div class="settingSection">
+        <p class="sheetLabel">Hızlı Yanıtlar</p>
+        <div id="qrList">${quickRepliesHtml || '<p style="color:#666;font-size:13px;">Henüz eklenmedi.</p>'}</div>
+        <div id="addWordRow"><input id="newQuickReply" placeholder="örn: Lütfen kurallara uy"><button onclick="addQuickReply()">Ekle</button></div>
+      </div>
+
+      <div class="settingSection">
+        <p class="sheetLabel">Tema Rengi</p>
+        <div style="display:flex;align-items:center;">${accentSwatches}</div>
+      </div>
+      <div class="settingSection">
+        <p class="sheetLabel">Yazı Boyutu (${settings.fontSize}px)</p>
+        <input type="range" min="12" max="19" step="0.5" value="${settings.fontSize}" oninput="setFontSize(this.value)" style="width:100%;">
+      </div>
+      <div class="settingSection">
+        <p class="sheetLabel">Bildirim Sesi</p>
+        <select onchange="settings.notifSound=this.value;saveSettings();" style="width:100%;padding:11px;border-radius:10px;border:1px solid #262629;background:#1b1b1e;color:#fff;">
+          <option value="beep" ${settings.notifSound==='beep'?'selected':''}>Klasik Bip</option>
+          <option value="chime" ${settings.notifSound==='chime'?'selected':''}>Çan</option>
+          <option value="low" ${settings.notifSound==='low'?'selected':''}>Kalın</option>
+        </select>
+      </div>
+      <div class="settingSection">
+        <div class="toggleRow"><span>Sessiz saatler (${settings.quietStart}:00–${settings.quietEnd}:00 sesi kapat)</span><button class="switch ${settings.quietOn?'on':''}" onclick="toggleSetting('quietOn', this)"><div class="dot"></div></button></div>
+      </div>
+
+      <div class="settingSection">
+        <p class="sheetLabel">Araçlar</p>
+        <button class="opt" onclick="testNotification()">${ICO.bell} Test bildirimi gönder</button>
+        <button class="opt" onclick="openDebugPanel()">${ICO.debug} Debug kayıtlarını gör</button>
+        <button class="opt" onclick="openActionLog()">${ICO.history} Moderasyon geçmişi</button>
+        <button class="opt" onclick="openStats()">${ICO.stats} Oturum istatistikleri</button>
+        <button class="opt" onclick="openSendLog()">${ICO.send} Gönderim kayıtları (mesaj gitmiyorsa bak)</button>
+      </div>
+      <button id="sheetCancel" onclick="closeSheet()">Kapat</button>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+function removeFromList(listKey, username) {
+  settings[listKey] = settings[listKey].filter(u => u !== username);
+  saveSettings(); closeSheet(); openSettings();
+}
+function setAccent(color) {
+  settings.accent = color; saveSettings();
+  document.documentElement.style.setProperty('--accent', color);
+  document.documentElement.style.setProperty('--accentDark', color);
+  closeSheet(); openSettings();
+}
+function setFontSize(val) {
+  settings.fontSize = parseFloat(val); saveSettings();
+  document.documentElement.style.setProperty('--chatFont', val + 'px');
+}
+function toggleDebugUI() {
+  document.getElementById('debugBar').classList.toggle('hidden', !settings.debugMode);
+  document.getElementById('debugToggleBtn').classList.toggle('hidden', !settings.debugMode);
+}
+function toggleSetting(key, btn) { settings[key] = !settings[key]; saveSettings(); btn.classList.toggle('on'); }
+function addWord() {
+  const input = document.getElementById('newWord');
+  const word = input.value.trim();
+  if (!word) return;
+  settings.bannedWords.push({ word, action: 'timeout', duration: 10 });
+  saveSettings(); closeSheet(); openSettings();
+}
+function removeWord(i) { settings.bannedWords.splice(i, 1); saveSettings(); closeSheet(); openSettings(); }
+function updateWordAction(i, action) { settings.bannedWords[i].action = action; saveSettings(); }
+
+function addQuickReply() {
+  const input = document.getElementById('newQuickReply');
+  const text = input.value.trim();
+  if (!text) return;
+  settings.quickReplies = settings.quickReplies || [];
+  settings.quickReplies.push(text);
+  saveSettings(); renderQuickReplies(); closeSheet(); openSettings();
+}
+function removeQuickReply(i) { settings.quickReplies.splice(i, 1); saveSettings(); renderQuickReplies(); closeSheet(); openSettings(); }
+function renderQuickReplies() {
+  const box = document.getElementById('quickReplies');
+  const list = settings.quickReplies || [];
+  if (!list.length) { box.innerHTML = ""; box.classList.add('hidden'); return; }
+  box.classList.remove('hidden');
+  box.innerHTML = list.map(q => `<button data-qr="${escapeHtml(q)}">${escapeHtml(q)}</button>`).join('');
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const box = document.getElementById('quickReplies');
+  if (box) box.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-qr]');
+    if (btn) useQuickReply(btn.dataset.qr);
+  });
+});
+function useQuickReply(text) {
+  const inputEl = document.getElementById('msgInput');
+  inputEl.value += (inputEl.value ? " " : "") + text;
+  inputEl.focus();
+  updateCharCount();
+}
+function testNotification() {
+  if (!("Notification" in window)) { toast("iPhone Safari sekmesinde bildirim yok. 'Ana Ekrana Ekle' yapıp oradan aç.", "err"); return; }
+  if (Notification.permission === "granted") new Notification("Test bildirimi", { body: "Çalışıyor 🎉" });
+  else Notification.requestPermission().then(p => {
+    if (p === "granted") new Notification("Test bildirimi", { body: "Çalışıyor 🎉" });
+    else toast("Bildirim izni verilmedi.", "err");
+  });
+}
+
+/* ===================== Debug paneli ===================== */
+function openDebugPanel() {
+  const overlay = document.createElement('div');
+  overlay.id = 'overlay';
+  overlay.onclick = (e) => { if (e.target.id === 'overlay') closeSheet(); };
+  let entries;
+  if (!debugLog.length) {
+    entries = `<p style="color:#9c9ca3;font-size:13px;">Henüz kayıt yok. Debug modu açıkken chat'te birkaç mesaj gelmesini bekle (özellikle emoji/emote içeren bir mesaj), sonra buraya tekrar bak.</p>`;
+  } else {
+    entries = debugLog.map((d, i) => `
+      <div class="debugEntry">
+        <div class="dbHead"><span>${escapeHtml(d.username)}</span><button onclick="copyDebug(${i})">Kopyala</button></div>
+        <div>${escapeHtml(d.raw)}</div>
+      </div>`).join('');
+  }
+  overlay.innerHTML = `<div id="sheet"><h3>${ICO.debug} Debug Kayıtları</h3><p style="font-size:12.5px;color:#9c9ca3;margin-top:-6px;">Bunları kopyalayıp bana gönderirsen emote sorununu kesin çözerim.</p>${entries}<button id="sheetCancel" onclick="closeSheet()">Kapat</button></div>`;
+  document.body.appendChild(overlay);
+}
+function copyDebug(i) {
+  const text = debugLog[i].raw;
+  if (navigator.clipboard) { navigator.clipboard.writeText(text).then(() => toast("Kopyalandı", "ok")).catch(() => toast("Kopyalanamadı, elle seç.", "err")); }
+  else toast("Kopyalanamadı, elle seç.", "err");
+}
+
+/* ===================== Başlangıç ===================== */
+function injectIcons() {
+  document.getElementById('debugToggleBtn').innerHTML = ICO.debug;
+  document.getElementById('historyBtn').innerHTML = ICO.history;
+  document.getElementById('gearBtn').innerHTML = ICO.gear;
+  document.getElementById('clearBtn').innerHTML = ICO.clear;
+  document.getElementById('emptyIcon').innerHTML = ICO.chat;
+  document.getElementById('emoteBtn').innerHTML = ICO.smile;
+  document.getElementById('cancelReplyBtn').innerHTML = ICO.x;
+  document.getElementById('searchBtn').innerHTML = ICO.search;
+  document.getElementById('panicBtn').innerHTML = ICO.eyeOff;
+  document.getElementById('statsBtn').innerHTML = ICO.stats;
+  document.getElementById('reconnectBtn').innerHTML = ICO.refresh;
+  document.getElementById('jumpToBottom').innerHTML = `<span style="display:flex;align-items:center;gap:5px;">${downArrowIco()} <span id="jumpToBottomText">Yeni mesajlar</span></span>`;
+}
+function downArrowIco() { return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`; }
+
+(async function init() {
+  load7tvGlobalEmotes();
+  setupScrollTracking();
+  toggleDebugUI();
+  injectIcons();
+  renderQuickReplies();
+  document.documentElement.style.setProperty('--accent', settings.accent);
+  document.documentElement.style.setProperty('--accentDark', settings.accent);
+  document.documentElement.style.setProperty('--chatFont', settings.fontSize + 'px');
+
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  const existingToken = localStorage.getItem(TOKEN_KEY);
+
+  if (code) {
+    const ok = await exchangeCodeForToken(code);
+    window.history.replaceState({}, document.title, REDIRECT_URI);
+    if (ok) showLoggedInUI();
+  } else if (existingToken) {
+    showLoggedInUI();
+  }
+})();
+</script>
+</body>
+</html>
