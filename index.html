@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0b1220">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>CityForge</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header id="top" onclick="this.classList.toggle('open')">
+  <b>CityForge</b>
+  <span>Para <i id="money"></i></span>
+  <span class="x">Net <i id="inc"></i></span>
+  <span>Nüfus <i id="pop"></i></span>
+  <span>Mutluluk <i id="hap"></i></span>
+  <span>Elektrik <i id="pw"></i></span>
+  <span class="x">Su <i id="wt"></i></span>
+  <span class="x">İşsizlik <i id="job"></i></span>
+  <span class="x"><i id="date"></i></span>
+</header>
+<main>
+  <aside id="left"><nav id="tabs"></nav><div id="cards"></div></aside>
+  <div id="mapw">
+    <canvas id="map"></canvas>
+    <div id="hint" onclick="this.remove()">Başlangıç: yol çiz, yola bitişik elektrik ve su kur, sonra ev ve iş yeri ekle. Kapatmak için dokun.</div>
+  </div>
+  <aside id="info"></aside>
+</main>
+<footer id="tools">
+  <button data-t="select" onclick="setTool('select')">Seç</button>
+  <button data-t="del" onclick="setTool('del')">Sil</button>
+  <button data-s="0" onclick="setSpeed(0)">Duraklat</button>
+  <button data-s="1" onclick="setSpeed(1)">1x</button>
+  <button data-s="2" onclick="setSpeed(2)">2x</button>
+  <button data-s="5" onclick="setSpeed(5)">5x</button>
+  <button data-s="10" onclick="setSpeed(10)">10x</button>
+  <select id="view" onchange="setView(this.value)"><option value="normal">Normal</option><option value="power">Elektrik</option><option value="water">Su</option><option value="traffic">Trafik</option><option value="pollution">Kirlilik</option></select>
+  <label>Vergi <input id="tax" type="range" min="0" max="20" oninput="S.tax=+this.value;calc();ui()"> <b id="taxv"></b></label>
+  <button onclick="saveGame()">Kaydet</button>
+  <button onclick="loadGame()">Yükle</button>
+  <button onclick="newGame()">Yeni oyun</button>
+  <button onclick="snd=!snd;this.textContent=snd?'Ses açık':'Ses kapalı'">Ses açık</button>
+</footer>
+<div id="toasts"></div>
+<script src="script.js"></script>
+</body>
+</html>
