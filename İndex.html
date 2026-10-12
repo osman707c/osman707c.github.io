@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="tr"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0b10">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg">
+<link rel="stylesheet" href="style.css">
+<title>AI Video Editör</title>
+</head><body><main>
+<h1>🎬 AI Video Editör</h1>
+<p class="not">Videolar cihazında işlenir, hiçbir sunucuya gönderilmez.</p>
+
+<section><h2>1. Video yükle</h2>
+<label class="btn">Fotoğraflar / Dosyalar'dan seç
+<input id="dosya" type="file" accept="video/*" multiple hidden></label>
+<ul id="liste"></ul></section>
+
+<section><h2>2. Prompt yaz</h2>
+<textarea id="prompt" rows="4" placeholder="Örn: Karanlık, agresif, hızlı kesmeli 15 saniyelik futbol editi"></textarea>
+<div class="satir">
+<select id="oran"><option value="9:16">TikTok 9:16</option><option value="16:9">YouTube 16:9</option><option value="1:1">Kare 1:1</option></select>
+<select id="cozunurluk"><option value="480">480p (hızlı)</option><option value="720">720p</option></select>
+</div>
+<button id="planBtn" class="btn">Edit planını göster</button>
+<pre id="plan"></pre></section>
+
+<section><h2>3. Dışa aktar</h2>
+<button id="baslat" class="btn ana">Edit oluştur</button>
+<button id="iptal" class="btn" hidden>İptal</button>
+<progress id="ilerleme" value="0" max="1" hidden></progress>
+<p id="durum"></p>
+<video id="onizleme" controls playsinline hidden></video>
+<div class="satir"><a id="indir" class="btn" hidden download="edit.mp4">İndir</a>
+<button id="paylas" class="btn" hidden>Paylaş / Fotoğraflara kaydet</button></div>
+</section>
+
+<p class="not">Efektler: kesme, hız, kırpma, renk, vignette, grain, zoom (normal video işleme). Prompt analizi kural tabanlıdır, AI değildir. Ses ve müzik sonraki sürümde.</p>
+</main>
+<script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
+<script src="app.js"></script>
+</body></html>
