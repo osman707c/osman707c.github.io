@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="tr"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0b10">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Video Editör">
+<link rel="manifest" href="manifest.webmanifest">
+<title>AI Video Editör</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0b0b10;color:#eee;font:16px -apple-system,system-ui,sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+main{max-width:560px;margin:auto;padding:16px}
+h1{font-size:22px}h2{font-size:17px;margin:0 0 10px}
+section{background:#16161f;border-radius:14px;padding:14px;margin:14px 0}
+.btn{display:block;width:100%;min-height:48px;padding:13px;margin:8px 0;border:0;border-radius:12px;background:#2a2a3a;color:#fff;font-size:16px;text-align:center;text-decoration:none}
+.btn.ana{background:#e5334b;font-weight:600}
+textarea,select,input[type=text]{width:100%;min-height:48px;padding:10px;margin:4px 0;border-radius:10px;border:1px solid #333;background:#0f0f16;color:#fff;font-size:16px}
+.satir{display:flex;gap:8px;margin:8px 0}
+.satir .btn{margin:0}
+progress{width:100%;height:14px}
+video{width:100%;max-height:60vh;border-radius:10px;background:#000}
+pre{white-space:pre-wrap;font-size:13px;color:#9fd}
+.not{font-size:13px;color:#999}
+li{margin:4px 0;font-size:14px}
+</style></head><body><main>
+<h1>🎬 AI Video Editör</h1>
+<p class="not">Videoların cihazında işlenir, hiçbir sunucuya gönderilmez.</p>
+
+<section><h2>1. Videolar</h2>
+<label class="btn">Fotoğraflar / Dosyalar'dan video seç
+<input id="dosya" type="file" accept="video/*" multiple hidden></label>
+<ul id="liste"></ul></section>
+
+<section><h2>2. Müzik (isteğe bağlı)</h2>
+<label class="btn">Müzik dosyası seç
+<input id="muz" type="file" accept="audio/*,.mp3,.m4a,.wav" hidden></label>
+<p id="muzbilgi" class="not">Müzik seçersen kesmeler beat noktalarına göre yapılır.</p></section>
+
+<section><h2>3. Referans edit analizi</h2>
+<p class="not">Kendi yüklediğin bir edit videosunun kesme hızı, rengi ve ritmi tahmini olarak çıkarılır. Link indirilmez.</p>
+<label class="btn">Referans video seç
+<input id="ref" type="file" accept="video/*" hidden></label>
+<pre id="refsonuc"></pre>
+<input id="stilad" type="text" placeholder="Stil adı" hidden>
+<button id="kaydet" class="btn" hidden>Stili kaydet</button>
+<select id="stiller"></select>
+<button id="sil" class="btn">Seçili stili sil</button></section>
+
+<section><h2>4. Prompt</h2>
+<textarea id="prompt" rows="4" placeholder="Örn: Karanlık, agresif, hızlı kesmeli 15 saniyelik futbol editi"></textarea>
+<input id="baslik" type="text" placeholder="Açılış yazısı (isteğe bağlı)">
+<div class="satir">
+<select id="oran"><option value="9:16">TikTok 9:16</option><option value="16:9">YouTube 16:9</option><option value="1:1">Kare 1:1</option></select>
+<select id="cozunurluk"><option value="480">480p (hızlı)</option><option value="720">720p</option></select>
+<select id="fps"><option value="30">30 fps</option><option value="24">24 fps</option></select>
+</div>
+<button id="planBtn" class="btn">Edit planını göster</button>
+<pre id="plan"></pre></section>
+
+<section><h2>5. Dışa aktar</h2>
+<button id="baslat" class="btn ana">Edit oluştur</button>
+<button id="iptal" class="btn" hidden>İptal</button>
+<progress id="ilerleme" value="0" max="1" hidden></progress>
+<p id="durum"></p>
+<video id="onizleme" controls playsinline hidden></video>
+<div class="satir"><a id="indir" class="btn" hidden download="edit.mp4">İndir</a>
+<button id="paylas" class="btn" hidden>Paylaş / Kaydet</button></div>
+</section>
+
+<p class="not">Tüm efektler (kesme, hız, zoom, flash, RGB split, renk, vignette, grain, açılış yazısı, müzik) normal video işleme koduyla uygulanır. Prompt analizi kural tabanlıdır, AI değildir. Orijinal video sesi kullanılmaz; müzik seçmezsen çıktı sessiz olur.</p>
+</main>
+<script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+let klipler=[],muzik=null,ff=null,iptal=false,refProfil=null;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const st=()=>{try{return JSON.parse(localStorage.getItem('stiller')||'[]')}catch(e){return[]}};
+const stKaydet=a=>{try{localStorage.setItem('stiller',JSON.stringify(a))}catch(e){alert('Stil kaydedilemedi (tarayıcı depolaması kapalı).')}};
+function stilYenile(){$('stiller').innerHTML='<option value="">Kayıtlı stil seçilmedi</option>'+st().map((x,i)=>`<option value="${i}">${esc(x.ad)}</option>`).join('')}
+stilYenile();
+
+function sure(f){return new Promise(r=>{const v=document.createElement('video');v.preload='metadata';v.onloadedmetadata=()=>{r(v.duration||0);URL.revokeObjectURL(v.src)};v.onerror=()=>r(0);v.src=URL.createObjectURL(f)})}
+
+$('dosya').onchange=async e=>{
+  klipler=[];
+  for(const f of e.target.files){const d=await sure(f);if(d>0)klipler.push({f,d,a:null,dn:false})}
+  $('liste').innerHTML=klipler.map(k=>`<li>${esc(k.f.name)} (${k.d.toFixed(1)} sn, ${(k.f.size/1e6).toFixed(0)} MB)${k.f.size>2e8?' ⚠️ çok büyük, bellek yetmeyebilir':''}</li>`).join('')||'<li>Video okunamadı.</li>';
+};
+
+async function sesAnaliz(f){
+  const AC=window.AudioContext||window.webkitAudioContext,ac=new AC();
+  const buf=await ac.decodeAudioData(await f.arrayBuffer());ac.close&&ac.close();
+  const ch=buf.getChannelData(0),hop=Math.floor(buf.sampleRate*0.01),n=Math.floor(ch.length/hop),e=new Float32Array(n);
+  for(let i=0;i<n;i++){let s=0;for(let j=i*hop;j<(i+1)*hop;j+=3)s+=ch[j]*ch[j];e[i]=Math.sqrt(s/(hop/3))}
+  const fl=new Float32Array(n);for(let i=1;i<n;i++)fl[i]=Math.max(0,e[i]-e[i-1]);
+  let m=0;for(const x of fl)m+=x;m/=n;let v=0;for(const x of fl)v+=(x-m)**2;const th=m+1.2*Math.sqrt(v/n);
+  const beats=[];let son=-1;
+  for(let i=5;i<n-5;i++){if(fl[i]>th){let ok=true;for(let k=-5;k<=5;k++)if(fl[i+k]>fl[i]){ok=false;break}if(ok&&(son<0||(i-son)*0.01>=0.28)){beats.push(i*0.01);son=i}}}
+  const iv=[];for(let i=1;i<beats.length;i++)iv.push(beats[i]-beats[i-1]);iv.sort((a,b)=>a-b);
+  const ar=iv.length?iv[iv.length>>1]:0.5;let bpm=60/ar;while(bpm<70)bpm*=2;while(bpm>180)bpm/=2;
+  return{d:buf.duration,beats,e,bpm:Math.round(bpm),aralik:ar};
+}
+
+$('muz').onchange=async e=>{
+  const f=e.target.files[0];if(!f)return;$('muzbilgi').textContent='Ses analiz ediliyor...';
+  try{muzik=await sesAnaliz(f);muzik.f=f;$('muzbilgi').textContent=`${f.name}: ${muzik.d.toFixed(0)} sn, ~${muzik.bpm} BPM, ${muzik.beats.length} beat noktası (ses analizi, AI değil)`}
+  catch(err){muzik=null;$('muzbilgi').textContent='Müzik çözülemedi. MP3 veya M4A dene.'}
+};
+
+function muzikBas(L){
+  if(!muzik||muzik.d<=L+1)return 0;
+  const e=muzik.e,w=Math.round(L/0.01),P=new Float64Array(e.length+1);
+  for(let i=0;i<e.length;i++)P[i+1]=P[i]+e[i];
+  let b=0,bs=-1;
+  for(const t of muzik.beats){const i=Math.round(t/0.01);if(i+w>e.length)break;const sc=P[i+w]-P[i];if(sc>bs){bs=sc;b=t}}
+  return b;
+}
+
+async function analiz(f,cb){
+  const v=document.createElement('video');v.muted=true;v.playsInline=true;v.preload='auto';
+  const url=URL.createObjectURL(f);v.src=url;
+  await new Promise((ok,no)=>{v.onloadeddata=ok;v.onerror=()=>no(new Error('Video okunamadı'))});
+  const d=v.duration,adim=Math.max(0.25,d/150),c=document.createElement('canvas');c.width=32;c.height=32;
+  const x=c.getContext('2d',{willReadFrequently:true});let prev=null,N=0;
+  const o={d,adim,diff:[],lum:0,sat:0,rgb:[0,0,0]};
+  for(let t=0;t<d;t+=adim){
+    await new Promise(r=>{const h=()=>{v.removeEventListener('seeked',h);r()};v.addEventListener('seeked',h);v.currentTime=Math.min(t,d-0.05);setTimeout(r,2500)});
+    x.drawImage(v,0,0,32,32);const px=x.getImageData(0,0,32,32).data,L=new Float32Array(1024);
+    let R=0,G=0,B=0,sa=0;
+    for(let i=0;i<1024;i++){const r=px[i*4],g=px[i*4+1],b=px[i*4+2];L[i]=.299*r+.587*g+.114*b;R+=r;G+=g;B+=b;const mx=Math.max(r,g,b);sa+=mx?(mx-Math.min(r,g,b))/mx:0}
+    let df=0;if(prev){for(let i=0;i<1024;i++)df+=Math.abs(L[i]-prev[i]);df/=1024*255}
+    o.diff.push(df);prev=L;o.rgb[0]+=R/1024;o.rgb[1]+=G/1024;o.rgb[2]+=B/1024;
+    o.lum+=(.299*R+.587*G+.114*B)/1024/255;o.sat+=sa/1024;N++;cb&&cb(t/d);
+  }
+  URL.revokeObjectURL(url);o.rgb=o.rgb.map(z=>Math.round(z/N));o.lum/=N;o.sat/=N;return o;
+}
+
+function kesmeler(a){
+  const m=a.diff.reduce((p,c)=>p+c,0)/a.diff.length,sd=Math.sqrt(a.diff.reduce((p,c)=>p+(c-m)**2,0)/a.diff.length),th=Math.max(.08,m+2*sd);
+  return a.diff.map((z,i)=>z>th?i*a.adim:-1).filter(z=>z>=0);
+}
+function profilCikar(a,m){
+  const k=kesmeler(a),ort=a.d/(k.length+1),mot=a.diff.reduce((p,c)=>p+c,0)/a.diff.length;
+  return{klip:Math.min(4,Math.max(.4,+ort.toFixed(2))),renk:a.lum<.33?'karanlik':a.sat<.3?'sinema':'normal',
+    vig:a.lum<.45,grain:a.sat<.35,zoom:mot>.04,flash:k.length/a.d>1,bpm:m?m.bpm:null,kesim:k.length,rgb:a.rgb,d:a.d};
+}
+const RENK={karanlik:'karanlık',sinema:'sinematik',normal:'doğal'};
+
+$('ref').onchange=async e=>{
+  const f=e.target.files[0];if(!f)return;$('kaydet').hidden=true;$('stilad').hidden=true;
+  $('refsonuc').textContent='Analiz ediliyor... %0';
+  try{
+    const a=await analiz(f,p=>$('refsonuc').textContent='Analiz ediliyor... %'+Math.round(p*100));
+    let m=null;try{m=await sesAnaliz(f)}catch(_){}
+    refProfil=profilCikar(a,m);const p=refProfil;
+    $('refsonuc').textContent=`Tahmini sonuçlar (normal kod, AI değil):\nKesme sayısı: ~${p.kesim} (${(p.kesim/p.d).toFixed(2)}/sn)\nOrtalama klip: ${p.klip} sn\nRitim: ${p.bpm?'~'+p.bpm+' BPM':'ses okunamadı'}\nRenk: ${RENK[p.renk]}, ortalama RGB ${p.rgb.join(',')}\nHareket: ${p.zoom?'yüksek (zoom kullanılacak)':'düşük'}\nFlash: ${p.flash?'evet':'hayır'}\n(Geçiş türü ve açılış/kapanış yapısı henüz çıkarılmıyor.)`;
+    $('kaydet').hidden=false;$('stilad').hidden=false;
+  }catch(err){$('refsonuc').textContent='Referans videosu analiz edilemedi: '+err.message}
+};
+$('kaydet').onclick=()=>{
+  if(!refProfil)return;const a=st();a.push(Object.assign({ad:$('stilad').value.trim()||'Stil '+(a.length+1)},refProfil));
+  stKaydet(a);stilYenile();$('stiller').value=String(a.length-1);$('stilad').value='';
+};
+$('sil').onclick=()=>{const i=$('stiller').value;if(i==='')return;const a=st();a.splice(+i,1);stKaydet(a);stilYenile()};
+
+function promptCoz(t,b){
+  t=t.toLowerCase();const has=r=>r.test(t);
+  const s=Object.assign({klip:1.5,hiz:1,renk:'normal',vig:false,grain:false,zoom:false,flash:false,rgb:false,velocity:false,sure:15},b||{});
+  s.notlar=b?['Kayıtlı/referans stil: '+b.ad]:[];
+  if(has(/hızlı|hizli|agresif|velocity|tempo|hareketli|fast/)){s.klip=Math.min(s.klip,.8);s.notlar.push('Hızlı kesmeler')}
+  if(has(/yavaş|yavas|sakin|duygusal/)){s.klip=2.5;s.notlar.push('Uzun planlar')}
+  if(has(/slow ?motion|ağır çekim|agir cekim/)){s.hiz=.6;s.notlar.push('Ağır çekim')}
+  if(has(/velocity|speed ?ramp|hız değişimi/)){s.velocity=true;s.notlar.push('Velocity (ağır çekim ↔ hızlı)')}
+  if(has(/sinematik|dizi|peaky|film|cinematic/)){s.renk='sinema';s.vig=s.grain=true;s.notlar.push('Sinematik renk, vignette, grain')}
+  if(has(/karanlık|karanlik|dark|agresif|aggressive/)){s.renk='karanlik';s.vig=true;s.notlar.push('Karanlık ton, vignette')}
+  if(has(/zoom|yakınlaş|yakinlas|punch|agresif/)){s.zoom=true;s.notlar.push('Zoom vuruşu')}
+  if(has(/flash|parlama|güçlü|guclu|agresif/)){s.flash=true;s.notlar.push('Kesmede flash')}
+  if(has(/glitch|rgb|chromatic|kromatik/)){s.rgb=true;s.notlar.push('RGB split')}
+  const m=t.match(/(\d+)\s*(sn|saniye)/);if(m)s.sure=Math.min(60,Math.max(3,+m[1]));
+  return s;
+}
+
+function planYap(s){
+  const L=s.sure;let d=[],bas=0,ritim=false;
+  if(muzik&&muzik.beats.length>3){
+    bas=muzikBas(L);const n=Math.max(1,Math.round(s.klip/muzik.aralik));
+    const b=muzik.beats.filter(x=>x>=bas&&x<bas+L).map(x=>x-bas).filter((_,k)=>k%n===0),p=[0];
+    for(const x of b)if(x-p[p.length-1]>=.3)p.push(x);
+    if(p.length>=3){p[p.length-1]<L-.3?p.push(L):p[p.length-1]=L;for(let i=1;i<p.length;i++)d.push(p[i]-p[i-1]);ritim=true}
+  }
+  if(!d.length){for(let t=0;t<L-.01;t+=s.klip)d.push(Math.min(s.klip,L-t));if(d.length>1&&d[d.length-1]<.3)d[d.length-2]+=d.pop()}
+  const aday=klipler.map(k=>{
+    if(!k.a)return[0];const o=[];
+    for(let t=0;t+1<k.d;t+=.5){let sc=0,c=0;for(let q=Math.floor(t/k.a.adim);q<Math.min(k.a.diff.length,Math.floor((t+2)/k.a.adim)+1);q++){sc+=k.a.diff[q];c++}o.push([t,c?sc/c:0])}
+    o.sort((x,y)=>y[1]-x[1]);const r=[];for(const [t] of o)if(r.every(z=>Math.abs(z-t)>=2))r.push(t);return r.length?r:[0];
+  });
+  const kul=klipler.map(()=>0);
+  const plan=d.map((dur,k)=>{
+    const i=k%klipler.length,K=klipler[i];let hiz=s.velocity?(k%2?.5:1.3):s.hiz;
+    const src=Math.min(dur*hiz,K.d);hiz=src/dur;const ad=aday[i];
+    let b0=ad[(kul[i]++)%ad.length];b0=Math.max(0,Math.min(b0,K.d-src-.05));
+    return{i,start:b0,len:src,dur,hiz};
+  });
+  return{plan,bas,ritim,toplam:d.reduce((p,c)=>p+c,0)};
+}
+
+function boyut(){
+  const [a,b]=$('oran').value.split(':').map(Number),k=+$('cozunurluk').value,e=x=>Math.round(x/2)*2;
+  return a<b?[e(k),e(k*b/a)]:a>b?[e(k*a/b),e(k)]:[e(k),e(k)];
+}
+
+async function planGoster(){
+  if(!klipler.length){$('plan').textContent='Önce en az bir video yükle.';return null}
+  for(const k of klipler)if(!k.dn){
+    $('plan').textContent='Video analiz ediliyor: '+k.f.name+'...';k.dn=true;
+    try{k.a=await analiz(k.f)}catch(e){k.a=null}
+  }
+  const si=$('stiller').value,s=promptCoz($('prompt').value,si!==''?st()[+si]:null),P=planYap(s);
+  $('plan').textContent=`Prompt analizi: kural tabanlı (AI değil)\nSahne seçimi: hareket analizi (normal kod)\nRitim: ${P.ritim?'müzik beat analizi (normal kod)':muzik?'beat bulunamadı, sabit tempo':'müzik yok, sabit tempo'}\nStil: ${s.notlar.join(', ')||'Düz kesme'}\nParça: ${P.plan.length} adet, toplam ~${P.toplam.toFixed(1)} sn\n`+P.plan.map((p,k)=>`${k+1}. klip ${p.i+1} @ ${p.start.toFixed(1)} sn, ${p.dur.toFixed(2)} sn, hız x${p.hiz.toFixed(2)}`).join('\n');
+  return{s,P};
+}
+$('planBtn').onclick=planGoster;
+
+function zincir(s,W,H,F,hiz){
+  const e=x=>Math.max(2,Math.round(x/2)*2),f=[`fps=${F}`,`setpts=(PTS-STARTPTS)/${hiz.toFixed(4)}`];
+  if(s.zoom){const w=e(W*1.5),h=e(H*1.5);f.push(`scale=${w}:${h}:force_original_aspect_ratio=increase`,`crop=${w}:${h}`,`zoompan=z='1+0.2*max(0,1-on/${Math.round(F*.4)})':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s=${W}x${H}:fps=${F}`)}
+  else f.push(`scale=${W}:${H}:force_original_aspect_ratio=increase`,`crop=${W}:${H}`);
+  if(s.renk==='sinema')f.push('eq=contrast=1.15:saturation=0.85:gamma_b=1.08','colorbalance=rs=0.08:bs=-0.06');
+  if(s.renk==='karanlik')f.push('eq=brightness=-0.07:contrast=1.25:saturation=0.75');
+  if(s.rgb)f.push('format=gbrp','rgbashift=rh=-6:bh=6');
+  if(s.flash)f.push("eq=brightness='0.45*max(0,1-t/0.12)':eval=frame");
+  if(s.vig)f.push('vignette=PI/5');
+  if(s.grain)f.push('noise=alls=12:allf=t');
+  f.push('setsar=1','format=yuv420p');return f.join(',');
+}
+
+async function baslikPng(txt,W,H){
+  const c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
+  x.textAlign='center';x.textBaseline='middle';let fs=Math.round(W/8);const F=z=>`800 ${z}px -apple-system,Helvetica,Arial,sans-serif`;
+  x.font=F(fs);while(x.measureText(txt).width>W*.9&&fs>12){fs-=4;x.font=F(fs)}
+  x.lineWidth=fs/8;x.strokeStyle='#000';x.fillStyle='#fff';x.strokeText(txt,W/2,H*.78);x.fillText(txt,W/2,H*.78);
+  const b=await new Promise(r=>c.toBlob(r,'image/png'));return new Uint8Array(await b.arrayBuffer());
+}
+
+$('iptal').onclick=()=>{iptal=true;try{ff&&ff.exit()}catch(e){}ff=null};
+
+function hataMesaji(err){
+  const m=String(err&&err.message||err);
+  if(/memory|alloc|abort/i.test(m))return'Bellek yetmedi. Daha kısa/az video, 480p ve daha kısa süre dene; zoom ve RGB split efektlerini kapat.';
+  if(/fetch|load|network|script/i.test(m))return'FFmpeg yüklenemedi. İnternet bağlantını kontrol edip tekrar dene.';
+  return'Dışa aktarma başarısız: '+m.slice(0,120);
+}
+
+$('baslat').onclick=async()=>{
+  const r=await planGoster();if(!r)return;
+  const{s,P}=r,plan=P.plan,[W,H]=boyut(),F=+$('fps').value,bt=$('baslik').value.trim();
+  iptal=false;$('baslat').hidden=true;$('iptal').hidden=false;$('ilerleme').hidden=false;$('ilerleme').value=0;
+  ['onizleme','indir','paylas'].forEach(i=>$(i).hidden=true);
+  try{
+    $('durum').textContent='FFmpeg yükleniyor (ilk seferde ~30 MB)...';
+    if(!ff){ff=FFmpeg.createFFmpeg({corePath:'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js'});await ff.load()}
+    let akt=0;const adet=plan.length+(muzik?1:0);
+    ff.setProgress(({ratio})=>{$('ilerleme').value=(akt+Math.min(1,Math.max(0,ratio)))/adet});
+    for(let i=0;i<klipler.length;i++)ff.FS('writeFile','in'+i,await FFmpeg.fetchFile(klipler[i].f));
+    if(bt)ff.FS('writeFile','baslik.png',await baslikPng(bt,W,H));
+    for(let k=0;k<plan.length;k++){
+      akt=k;$('durum').textContent=`Parça ${k+1}/${plan.length} işleniyor...`;
+      const q=plan[k],z=zincir(s,W,H,F,q.hiz),a=['-ss',q.start.toFixed(3),'-t',q.len.toFixed(3),'-i','in'+q.i];
+      if(k===0&&bt)a.push('-i','baslik.png','-filter_complex',`[0:v]${z}[v];[v][1:v]overlay=0:0:enable='lt(t,1.8)'[o]`,'-map','[o]');
+      else a.push('-vf',z);
+      a.push('-an','-c:v','libx264','-preset','ultrafast','-crf','28','-pix_fmt','yuv420p','s'+k+'.mp4');
+      await ff.run(...a);
+    }
+    $('durum').textContent='Birleştiriliyor...';
+    ff.FS('writeFile','liste.txt',plan.map((_,k)=>`file 's${k}.mp4'`).join('\n'));
+    await ff.run('-f','concat','-safe','0','-i','liste.txt','-c','copy','cikti.mp4');
+    let son='cikti.mp4';
+    if(muzik){
+      akt=plan.length;$('durum').textContent='Müzik ekleniyor...';
+      ff.FS('writeFile','muz',await FFmpeg.fetchFile(muzik.f));const top=P.toplam;
+      await ff.run('-i','cikti.mp4','-ss',P.bas.toFixed(3),'-i','muz','-t',top.toFixed(3),'-map','0:v:0','-map','1:a:0','-c:v','copy','-c:a','aac','-b:a','160k','-af',`afade=t=out:st=${Math.max(0,top-1).toFixed(2)}:d=1`,'-shortest','son.mp4');
+      son='son.mp4';
+    }
+    const data=ff.FS('readFile',son),blob=new Blob([data.buffer],{type:'video/mp4'}),url=URL.createObjectURL(blob);
+    $('onizleme').src=url;$('indir').href=url;['onizleme','indir','paylas'].forEach(i=>$(i).hidden=false);
+    $('paylas').onclick=async()=>{const file=new File([blob],'edit.mp4',{type:'video/mp4'});
+      if(navigator.canShare&&navigator.canShare({files:[file]}))await navigator.share({files:[file]});else alert('Bu tarayıcı paylaşımı desteklemiyor. İndir düğmesini kullan.')};
+    $('durum').textContent='Hazır ✅ ('+W+'x'+H+', '+F+' fps'+(muzik?', müzikli':', sessiz')+')';
+    for(const n of [...klipler.map((_,i)=>'in'+i),...plan.map((_,k)=>'s'+k+'.mp4'),'cikti.mp4','son.mp4','muz','baslik.png','liste.txt']){try{ff.FS('unlink',n)}catch(e){}}
+  }catch(err){console.error(err);ff=null;$('durum').textContent=iptal?'İşlem iptal edildi.':hataMesaji(err)}
+  $('baslat').hidden=false;$('iptal').hidden=true;$('ilerleme').hidden=true;
+};
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body></html>
