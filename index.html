@@ -1,0 +1,168 @@
+<!DOCTYPE html><html lang="tr"><head><meta charset="utf-8"><title>NASHI</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>
+:root{--bg:#09090d;--s:#17171f;--t:#f4f4f8;--m:#9a9ab0;--a:#7c5cff;--g:linear-gradient(135deg,#7c5cff,#3ea8ff 55%,#ff7ac8);box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:light){:root[data-theme=never]{--bg:#f6f6f9;--s:#e6e6ee;--t:#15151a;--m:#666672}}
+:root[data-theme=light]{--bg:#f6f6f9;--s:#e6e6ee;--t:#15151a;--m:#666672}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--t);font:14px -apple-system,system-ui,sans-serif;display:flex;flex-direction:column;overflow:hidden;-webkit-user-select:none;user-select:none}
+header{display:flex;gap:8px;align-items:center;padding:8px 10px}
+header b{flex:1}.wm{flex:none;letter-spacing:.2em;font-weight:800;background:var(--g);-webkit-background-clip:text;background-clip:text;color:transparent}.sp{flex:1}
+.b,select{background:var(--s);color:var(--t);border:0;border-radius:10px;padding:9px 11px;font:inherit}
+.a{background:var(--g);color:#fff}
+#stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:0 10px}
+#cv{max-width:100%;max-height:100%;background:#000;border-radius:14px;box-shadow:0 0 40px #7c5cff33,0 0 0 1px #ffffff18}
+#ctl{display:flex;gap:8px;align-items:center;padding:8px 10px}
+#ctl input{flex:1}
+#tm{color:var(--m);font-size:12px;min-width:96px;text-align:right}
+#tl{overflow-x:auto;height:112px;background:var(--s);margin:0 10px;border-radius:10px;-webkit-overflow-scrolling:touch}
+.in{position:relative;height:100%;padding-top:6px;box-sizing:border-box}
+.row{display:flex;height:48px}
+.cl{box-sizing:border-box;height:100%;background:#3a3a55 center/cover;text-shadow:0 1px 3px #000;border:2px solid transparent;border-radius:8px;padding:4px 6px;font-size:11px;overflow:hidden;white-space:nowrap;color:#fff}
+.cl small{display:block;opacity:.7}
+.cl.on{border-color:var(--a)}
+.trow{position:relative;height:26px;margin-top:6px}
+.tb{position:absolute;top:0;height:22px;background:#c7508a;border-radius:6px;font-size:11px;padding:3px 5px;box-sizing:border-box;overflow:hidden;white-space:nowrap;color:#fff;border:2px solid transparent}
+.tb.on{border-color:#fff}
+#ph{position:absolute;top:0;bottom:0;width:3px;border-radius:2px;background:var(--g);box-shadow:0 0 8px #7c5cffaa;pointer-events:none}
+#tabs{display:flex;gap:4px;padding:6px 10px 8px;border-top:1px solid #ffffff14}
+#tabs .b{flex:1;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:var(--m);padding:6px 0}#tabs .b svg{stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#tabs .on{color:#fff}#tabs .on svg{stroke:#9b86ff}
+.p{display:none;height:150px;overflow-y:auto;padding:8px 10px}
+.p.on{display:block}
+.btns{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
+.p label{display:flex;align-items:center;gap:8px;margin:5px 0;color:var(--m);font-size:12px}
+.p label span{width:68px}
+.p label input[type=range]{flex:1}
+.p input[type=text]{flex:1;background:var(--s);color:var(--t);border:0;border-radius:8px;padding:8px;font:inherit;width:100%;box-sizing:border-box;-webkit-user-select:text;user-select:text}
+#ex,#res{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center;color:#fff;z-index:9;padding:20px;text-align:center}
+[hidden]{display:none!important}
+#home{position:fixed;inset:0;z-index:15;background:radial-gradient(120% 60% at 50% 0,#2a1a5e 0,var(--bg) 60%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center;overflow:auto}
+#home p{color:var(--m);margin:0}.wm.big{font-size:34px}
+.card{background:#ffffff0d;border:1px solid #ffffff1a;border-radius:20px;padding:16px;width:100%;max-width:360px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px}
+.chips{display:flex;gap:8px}.chips .b{flex:1;padding:9px 0}.chips .on{background:var(--g);color:#fff}
+.big{padding:14px;font-weight:700}.pn{color:var(--m);font-size:12px;margin-left:6px}.ic{padding:8px;display:flex}.ic svg{stroke:var(--t);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.em{color:var(--m);padding:14px}
+#pname{background:#ffffff12;color:var(--t);border:1px solid #ffffff1a;border-radius:12px;padding:12px;font:inherit;text-align:center;outline:none;-webkit-user-select:text;user-select:text}
+input[type=range]{accent-color:#8f78ff}.pn{display:none}header{gap:6px}.b{white-space:nowrap}header select{font-size:12px;padding:9px 6px}.rl{height:10px;background:repeating-linear-gradient(90deg,#ffffff40 0 1px,transparent 1px 40px)}
+#spl{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:20;pointer-events:none;animation:spo 2.2s forwards}
+#spl .wm{font-size:30px}#spl path{stroke-dasharray:100;stroke-dashoffset:100;animation:dr 1.2s ease forwards}
+@keyframes dr{to{stroke-dashoffset:0}}@keyframes spo{0%,75%{opacity:1}100%{opacity:0;visibility:hidden}}
+#pgw{width:70%;height:8px;background:#444;border-radius:4px;overflow:hidden}#pg{height:100%;width:0;background:var(--g)}
+#rv{max-width:90%;max-height:55%;border-radius:8px}
+</style></head><body>
+<header><svg width="28" height="28" viewBox="0 0 32 32"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c5cff"/><stop offset=".55" stop-color="#3ea8ff"/><stop offset="1" stop-color="#ff7ac8"/></linearGradient></defs><path d="M7 26V7l18 18V6" fill="none" stroke="url(#lg)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/></svg><b class="wm">NASHI</b><span id="pn" class="pn"></span><span class="sp"></span><button class="b ic" id="hb" aria-label="Ana ekran"><svg width="18" height="18" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8M5 10v10h14V10"/></svg></button><select id="ar"><option value="720,1280">9:16</option><option value="1280,720">16:9</option><option value="720,720">1:1</option><option value="720,900">4:5</option></select><button class="b" id="undo">Geri al</button><button class="b a" id="exp">Dışa aktar</button></header>
+<div id="stage"><canvas id="cv" width="720" height="1280"></canvas></div>
+<div id="ctl"><button class="b" id="pp">▶</button><input type="range" id="sc" min="0" max="1" step="0.01" value="0"><span id="tm">0:00.0 / 0:00.0</span></div>
+<div id="tl"><div class="in" id="in"></div></div>
+
+<div class="p on" id="p0">
+<div class="btns"><label class="b a" style="margin:0;color:#fff">+ Video ekle<input type="file" id="file" accept="video/*" multiple hidden></label><button class="b" id="split">Böl</button><button class="b" id="dup">Kopyala</button><button class="b" id="del">Sil</button><button class="b" id="mL">◀</button><button class="b" id="mR">▶</button></div>
+<label><span>Hız</span><input type="range" id="sp" min="0.25" max="4" step="0.25"></label>
+<label><span>Ses</span><input type="range" id="vo" min="0" max="1" step="0.05"></label>
+<label><span>Başlangıç</span><input type="range" id="ti" step="0.05"></label>
+<label><span>Bitiş</span><input type="range" id="to" step="0.05"></label>
+</div>
+<div class="p" id="p1">
+<div class="btns" id="pre"></div>
+<label><span>Parlaklık</span><input type="range" id="fb" min="50" max="150"></label>
+<label><span>Kontrast</span><input type="range" id="fc" min="50" max="150"></label>
+<label><span>Doygunluk</span><input type="range" id="fs" min="0" max="200"></label>
+<label id="flb"><span>Bulanıklık</span><input type="range" id="fl" min="0" max="10" step="0.5"></label>
+</div>
+<div class="p" id="p2">
+<div class="btns"><button class="b a" id="tadd">+ Metin ekle</button><button class="b" id="tdel">Sil</button><input type="color" id="tc" value="#ffffff"></div>
+<input type="text" id="tx" placeholder="Metin">
+<label><span>Başlangıç</span><input type="range" id="ts" step="0.1"></label>
+<label><span>Süre</span><input type="range" id="td" min="0.5" max="10" step="0.1"></label>
+<label><span>Boyut</span><input type="range" id="tz" min="24" max="160"></label>
+<label><span>Konum</span><input type="range" id="ty" min="5" max="95"></label>
+</div>
+<div id="tabs"><button class="b on" data-p="0"><svg width="22" height="22" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M12 6v12"/></svg>Klip</button><button class="b" data-p="1"><svg width="22" height="22" viewBox="0 0 24 24"><circle cx="9" cy="10" r="6"/><circle cx="15" cy="14" r="6"/></svg>Filtre</button><button class="b" data-p="2"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M5 6V4h14v2M12 4v16M9 20h6"/></svg>Metin</button></div>
+<div id="home"><svg width="84" height="84" viewBox="0 0 32 32"><path d="M7 26V7l18 18V6" fill="none" stroke="url(#lg)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="wm big">NASHI</div><p>Telefonunda video düzenle</p><div class="card"><input type="text" id="pname" placeholder="Proje adı"><div class="chips" id="chips"><button class="b on" data-r="720,1280">9:16</button><button class="b" data-r="1280,720">16:9</button><button class="b" data-r="720,720">1:1</button><button class="b" data-r="720,900">4:5</button></div><button class="b a big" id="start">Yeni proje başlat</button><button class="b" id="cont" hidden>Projeye dön</button></div><p style="font-size:12px">Videoların cihazından çıkmaz, her şey telefonunda işlenir.</p></div>
+<div id="spl"><svg width="96" height="96" viewBox="0 0 32 32"><path d="M7 26V7l18 18V6" fill="none" stroke="url(#lg)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="wm">NASHI</div></div>
+<div id="ex" hidden><div>Video oluşturuluyor… Ekranı kapatma, sekmeden çıkma.</div><div id="pgw"><div id="pg"></div></div><button class="b" id="cx">İptal</button></div>
+<div id="res" hidden><video id="rv" controls playsinline></video><div style="display:flex;gap:8px"><a class="b a" id="dl" style="text-decoration:none">İndir</a><button class="b" id="sh">Paylaş / Kaydet</button><button class="b" id="cl">Kapat</button></div></div>
+<script>
+const $=s=>document.querySelector(s),cv=$('#cv'),g=cv.getContext('2d',{willReadFrequently:true});
+const v=document.createElement('video');v.playsInline=true;v.preload='auto';v.style.cssText='position:fixed;width:1px;height:1px;opacity:0;pointer-events:none';document.body.appendChild(v);
+let clips=[],texts=[],sel=-1,st=-1,T=0,playing=false,cur=-1,undo=[],ratio=[720,1280],exporting=false,sk=0,busy=false,rec,chunks,actx,dest,spk;
+const PX=40,hasF='filter' in g,rid=()=>Math.random().toString(36).slice(2);
+const len=c=>(c.out-c.in)/c.speed,total=()=>clips.reduce((a,c)=>a+len(c),0),off=i=>clips.slice(0,i).reduce((a,c)=>a+len(c),0);
+const fm=t=>Math.floor(t/60)+':'+(t%60).toFixed(1).padStart(4,'0');
+function loc(t){let a=0;for(let i=0;i<clips.length;i++){const l=len(clips[i]);if(t<a+l||i==clips.length-1)return{i,l:Math.min(Math.max(t-a,0),l)};a+=l}}
+function snap(){undo.push(JSON.stringify({clips,texts}));if(undo.length>30)undo.shift()}
+document.addEventListener('pointerdown',e=>{if(e.target.dataset&&e.target.dataset.snap)snap()});
+$('#undo').onclick=()=>{const s=undo.pop();if(!s)return;({clips,texts}=JSON.parse(s));sel=Math.min(sel,clips.length-1);st=Math.min(st,texts.length-1);pause();seek(T);ui()};
+async function setClip(i,s){const c=clips[i];cur=i;if(v.dataset.u!==c.url){v.dataset.u=c.url;v.src=c.url;await new Promise(r=>{v.onloadeddata=r;v.load()})}
+v.playbackRate=c.speed;v.volume=c.vol;v.currentTime=s;await new Promise(r=>{const d=()=>{v.onseeked=null;r()};v.onseeked=d;setTimeout(d,400)})}
+async function seek(t){const id=++sk;t=Math.max(0,Math.min(t,total()));T=t;if(!clips.length){cur=-1;draw();tm();return}
+const L=loc(t),c=clips[L.i];await setClip(L.i,c.in+L.l*c.speed);if(id!==sk)return;draw();tm()}
+function px(f,x,y,w,h){const d=g.getImageData(x,y,w,h),a=d.data,b=f.b/100,c=f.c/100,s=f.s/100;for(let i=0;i<a.length;i+=4){const r=(a[i]*b-128)*c+128,gg=(a[i+1]*b-128)*c+128,bb=(a[i+2]*b-128)*c+128,l=.3*r+.59*gg+.11*bb;a[i]=l+(r-l)*s;a[i+1]=l+(gg-l)*s;a[i+2]=l+(bb-l)*s}g.putImageData(d,x,y)}
+function draw(){const[W,H]=ratio;if(cv.width!=W||cv.height!=H){cv.width=W;cv.height=H}
+g.fillStyle='#000';g.fillRect(0,0,W,H);const c=clips[cur];
+if(c&&v.videoWidth){const s=Math.min(W/v.videoWidth,H/v.videoHeight),w=v.videoWidth*s,h=v.videoHeight*s,x=(W-w)/2,y=(H-h)/2,f=c.f;
+if(hasF)g.filter=`brightness(${f.b}%) contrast(${f.c}%) saturate(${f.s}%) blur(${f.bl}px)`;
+g.drawImage(v,x,y,w,h);if(hasF)g.filter='none';
+else if(f.b!=100||f.c!=100||f.s!=100)px(f,x|0,y|0,w|0,h|0)}
+texts.forEach(t=>{if(T>=t.s&&T<=t.s+t.d){g.font=`bold ${t.z}px sans-serif`;g.textAlign='center';g.lineJoin='round';g.lineWidth=t.z/6;g.strokeStyle='#000';g.fillStyle=t.c;const y=H*t.y/100;g.strokeText(t.t,W/2,y);g.fillText(t.t,W/2,y)}})}
+function tm(){const tt=total();$('#tm').textContent=fm(T)+' / '+fm(tt);$('#sc').value=T;const ph=$('#ph');if(ph){ph.style.left=T*PX+'px';if(playing){const tl=$('#tl');tl.scrollLeft=T*PX-tl.clientWidth/2}}$('#pg').style.width=(tt?T/tt*100:0)+'%'}
+function tlr(){let h=clips.length?'':'<div class="em">+ Video ekle ile başla</div>';clips.forEach((c,i)=>h+=`<div class="cl${i==sel?' on':''}" style="width:${Math.max(len(c)*PX,28)}px;background-image:url(${c.th})">${c.name.slice(0,16)}<small>${len(c).toFixed(1)}s</small></div>`);
+const tb=texts.map((t,i)=>`<div class="tb${i==st?' on':''}" data-t="${i}" style="left:${t.s*PX}px;width:${Math.max(t.d*PX,24)}px">${t.t}</div>`).join('');
+$('#in').style.minWidth=(total()*PX+160)+'px';$('#in').innerHTML=`<div class="rl"></div><div class="row">${h}</div><div class="trow">${tb}</div><div id="ph"></div>`}
+function ui(){tlr();$('#sc').max=total()||1;const c=clips[sel],set=(id,x,mn,mx)=>{const e=$('#'+id);if(mn!=null){e.min=mn;e.max=mx}e.value=x};
+if(c){set('sp',c.speed);set('vo',c.vol);set('ti',c.in,0,c.dur);set('to',c.out,0,c.dur);set('fb',c.f.b);set('fc',c.f.c);set('fs',c.f.s);set('fl',c.f.bl)}
+const t=texts[st];if(t){set('tx',t.t);set('ts',t.s,0,Math.max(total(),1));set('td',t.d);set('tz',t.z);set('ty',t.y);set('tc',t.c)}
+$('#flb').hidden=!hasF;draw();tm()}
+$('#in').onclick=e=>{const r=$('#in').getBoundingClientRect(),t=(e.clientX-r.left)/PX;pause();if(e.target.dataset.t!=null){st=+e.target.dataset.t;tab(2)}else if(clips.length)sel=loc(Math.min(t,total())).i;seek(t).then(ui)};
+const thumb=u=>new Promise(r=>{const t=document.createElement('video');t.muted=true;t.playsInline=true;t.src=u;t.onloadeddata=()=>{t.currentTime=Math.min(.1,t.duration/2)};t.onseeked=()=>{const c=document.createElement('canvas');c.width=96;c.height=56;c.getContext('2d').drawImage(t,0,0,96,56);r(c.toDataURL('image/jpeg',.6))};t.onerror=()=>r('');setTimeout(()=>r(''),3000)});
+const dur=u=>new Promise(r=>{const t=document.createElement('video');t.preload='metadata';t.onloadedmetadata=()=>r(t.duration);t.onerror=()=>r(0);t.src=u});
+$('#file').onchange=async e=>{snap();let bad=0;for(const f of e.target.files){const url=URL.createObjectURL(f),d=await dur(url);if(!d||!isFinite(d)){bad++;continue}
+clips.push({id:rid(),url,th:await thumb(url),name:f.name,in:0,out:d,dur:d,speed:1,vol:1,f:{b:100,c:100,s:100,bl:0}})}
+e.target.value='';if(bad)alert(bad+' dosya okunamadı (format desteklenmiyor olabilir).');sel=clips.length-1;if(cur<0)await seek(0);ui()};
+async function play(){if(!clips.length)return;if(T>=total()-.05)await seek(0);playing=true;v.play();$('#pp').textContent='⏸';loop()}
+function pause(){playing=false;v.pause();$('#pp').textContent='▶'}
+$('#pp').onclick=()=>playing?pause():play();
+$('#sc').oninput=e=>{pause();seek(+e.target.value)};
+function loop(){if(!playing)return;requestAnimationFrame(loop);if(busy)return;const c=clips[cur];if(!c)return;
+if(v.currentTime>=c.out-.04||v.ended){const n=cur+1;if(n>=clips.length){pause();T=total();draw();tm();if(exporting)setTimeout(()=>rec.state!=='inactive'&&rec.stop(),300);return}
+const nc=clips[n];busy=true;(async()=>{if(v.dataset.u===nc.url&&Math.abs(v.currentTime-nc.in)<.15){cur=n;v.playbackRate=nc.speed;v.volume=nc.vol}else await setClip(n,nc.in);if(playing)v.play();busy=false})();return}
+T=off(cur)+(v.currentTime-c.in)/c.speed;draw();tm()}
+// klip işlemleri
+$('#split').onclick=async()=>{if(!clips.length)return;pause();const L=loc(T),c=clips[L.i],s=c.in+L.l*c.speed;if(s<=c.in+.1||s>=c.out-.1)return alert('Playhead klibin içinde olmalı (uçlara çok yakın olmamalı).');
+snap();const n=JSON.parse(JSON.stringify(c));n.id=rid();c.out=s;n.in=s;clips.splice(L.i+1,0,n);sel=L.i;await seek(T);ui()};
+$('#dup').onclick=()=>{const c=clips[sel];if(!c)return;snap();const n=JSON.parse(JSON.stringify(c));n.id=rid();clips.splice(sel+1,0,n);sel++;ui()};
+$('#del').onclick=async()=>{if(sel<0)return;pause();snap();clips.splice(sel,1);sel=Math.min(sel,clips.length-1);cur=-1;v.dataset.u='';await seek(T);ui()};
+const mv=d=>{const j=sel+d;if(sel<0||j<0||j>=clips.length)return;snap();[clips[sel],clips[j]]=[clips[j],clips[sel]];sel=j;pause();cur=-1;seek(T).then(ui)};
+$('#mL').onclick=()=>mv(-1);$('#mR').onclick=()=>mv(1);
+const bind=(id,fn,tx)=>{const e=$('#'+id);e.dataset.snap=1;e.oninput=()=>{const o=tx?texts[st]:clips[sel];if(!o)return;fn(o,tx&&id=='tx'||id=='tc'?e.value:+e.value);ui()};e.onchange=()=>{pause();seek(T)}};
+bind('sp',(c,x)=>c.speed=x);bind('vo',(c,x)=>c.vol=x);bind('ti',(c,x)=>c.in=Math.min(x,c.out-.2));bind('to',(c,x)=>c.out=Math.max(x,c.in+.2));
+bind('fb',(c,x)=>c.f.b=x);bind('fc',(c,x)=>c.f.c=x);bind('fs',(c,x)=>c.f.s=x);bind('fl',(c,x)=>c.f.bl=x);
+bind('tx',(t,x)=>t.t=x,1);bind('ts',(t,x)=>t.s=x,1);bind('td',(t,x)=>t.d=x,1);bind('tz',(t,x)=>t.z=x,1);bind('ty',(t,x)=>t.y=x,1);bind('tc',(t,x)=>t.c=x,1);
+$('#tx').oninput=e=>{const t=texts[st];if(t){t.t=e.target.value;tlr();draw()}};
+const PRE={Orijinal:[100,100,100],Sinema:[95,118,82],Canlı:[105,110,145],'Siyah-beyaz':[100,110,0],Retro:[110,90,70]};
+Object.entries(PRE).forEach(([n,[b,c,s]])=>{const e=document.createElement('button');e.className='b';e.textContent=n;e.onclick=()=>{const k=clips[sel];if(!k)return;snap();Object.assign(k.f,{b,c,s});ui()};$('#pre').appendChild(e)});
+$('#tadd').onclick=()=>{snap();texts.push({t:'Metin',s:T,d:3,z:64,c:'#ffffff',y:50});st=texts.length-1;ui()};
+$('#tdel').onclick=()=>{if(st<0)return;snap();texts.splice(st,1);st=texts.length-1;ui()};
+function tab(i){document.querySelectorAll('#tabs .b').forEach((b,j)=>b.classList.toggle('on',j==i));document.querySelectorAll('.p').forEach((p,j)=>p.classList.toggle('on',j==i))}
+document.querySelectorAll('#tabs .b').forEach(b=>b.onclick=()=>tab(+b.dataset.p));
+$('#ar').onchange=e=>{ratio=e.target.value.split(',').map(Number);draw()};
+// dışa aktarma
+$('#exp').onclick=async()=>{if(!clips.length||exporting)return alert('Önce video ekle.');pause();
+const mimes=['video/mp4;codecs=avc1.42E01E,mp4a.40.2','video/mp4','video/webm;codecs=vp9,opus','video/webm'],mt=window.MediaRecorder&&mimes.find(m=>MediaRecorder.isTypeSupported(m));
+if(!mt)return alert('Bu tarayıcı video kaydını desteklemiyor.');
+try{if(!actx){actx=new(window.AudioContext||window.webkitAudioContext)();const s=actx.createMediaElementSource(v);spk=actx.createGain();dest=actx.createMediaStreamDestination();s.connect(spk);spk.connect(actx.destination);s.connect(dest)}
+await actx.resume();spk.gain.value=0;
+const so=cv.captureStream(30);dest.stream.getAudioTracks().forEach(t=>so.addTrack(t));chunks=[];
+rec=new MediaRecorder(so,{mimeType:mt,videoBitsPerSecond:8e6});const r=rec;r.ondataavailable=e=>e.data.size&&chunks.push(e.data);
+r.onstop=()=>{spk.gain.value=1;exporting=false;$('#ex').hidden=true;if(r.cancel)return;showRes(new Blob(chunks,{type:mt.split(';')[0]}),mt.includes('mp4')?'mp4':'webm')};
+exporting=true;$('#ex').hidden=false;await seek(0);r.start(500);play()}catch(err){exporting=false;$('#ex').hidden=true;alert('Dışa aktarma hatası: '+err.message)}};
+$('#cx').onclick=()=>{if(rec){rec.cancel=true;pause();rec.state!=='inactive'&&rec.stop()}};
+function showRes(b,ext){const f=new File([b],'video.'+ext,{type:b.type}),u=URL.createObjectURL(b);$('#res').hidden=false;$('#rv').src=u;$('#dl').href=u;$('#dl').download='video.'+ext;
+$('#sh').onclick=()=>navigator.canShare&&navigator.canShare({files:[f]})?navigator.share({files:[f]}).catch(()=>{}):alert('Paylaşım desteklenmiyor, İndir düğmesini kullan.')}
+$('#cl').onclick=()=>{$('#res').hidden=true;$('#rv').pause()};
+let rr='720,1280';document.querySelectorAll('#chips button').forEach(b=>b.onclick=()=>{rr=b.dataset.r;document.querySelectorAll('#chips button').forEach(x=>x.classList.toggle('on',x==b))});
+$('#start').onclick=()=>{pause();clips=[];texts=[];sel=st=-1;undo=[];T=0;cur=-1;v.dataset.u='';ratio=rr.split(',').map(Number);$('#ar').value=rr;$('#pn').textContent=$('#pname').value||'Adsız proje';$('#home').hidden=true;$('#cont').hidden=false;ui()};
+$('#hb').onclick=()=>{pause();$('#home').hidden=false};$('#cont').onclick=()=>$('#home').hidden=true;
+ui();
+</script></body></html>
