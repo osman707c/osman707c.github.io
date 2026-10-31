@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>NASHI — Professional Mobile Video Editor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#08080a">
+<style>
+:root {
+  --bg: #08080a;
+  --panel: #121216;
+  --panel-light: #1c1c22;
+  --border: #262630;
+  --accent: #ff5a3c;
+  --accent-hover: #ff735a;
+  --text: #f4f4f6;
+  --text-muted: #8e8e99;
+  --radius: 10px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  color-scheme: dark;
+  box-sizing: border-box;
+}
+
+*, *:before, *:after {
+  box-sizing: inherit;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+  overflow: hidden;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 50px;
+  padding: 0 14px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  z-index: 10;
+}
+
+.logo-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-icon {
+  width: 28px;
+  height: 28px;
+  background: var(--accent);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  color: #111;
+  font-size: 15px;
+}
+
+.proj-title {
+  font-weight: 700;
+  font-size: 15px;
+  max-width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  outline: none;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.icon-btn:active {
+  background: var(--panel-light);
+}
+
+.icon-btn svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #111;
+  font-weight: 700;
+  font-size: 13px;
+  height: 34px;
+  padding: 0 16px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-primary:active {
+  background: var(--accent-hover);
+}
+
+#stage {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  padding: 8px;
+}
+
+#canvas-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+  max-height: 100%;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+canvas {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.aspect-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(18,18,22,0.85);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px 8px;
+  z-index: 5;
+}
+
+.aspect-badge select {
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  border: none;
+  outline: none;
+}
+
+#controls-bar {
+  display: flex;
+  align-items: center;
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  height: 46px;
+  padding: 0 10px;
+}
+
+.time-display {
+  width: 80px;
+  font-size: 11px;
+  font-family: ui-monospace, monospace;
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.3;
+}
+
+.time-display span {
+  display: block;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.play-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--text);
+  color: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  margin: 0 10px;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+#timeline-wrap {
+  position: relative;
+  height: 130px;
+  background: #0a0a0d;
+  overflow: hidden;
+  user-select: none;
+}
+
+#timeline-scroll {
+  width: 100%;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+#timeline-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.timeline-inner {
+  position: relative;
+  height: 100%;
+  min-width: 100%;
+}
+
+.timeline-ruler {
+  position: relative;
+  height: 22px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.ruler-mark {
+  position: absolute;
+  top: 0;
+  height: 22px;
+  border-left: 1px solid rgba(255,255,255,0.15);
+  font-size: 9px;
+  color: var(--text-muted);
+  padding-left: 4px;
+  line-height: 20px;
+  pointer-events: none;
+}
+
+.timeline-track {
+  position: relative;
+  height: 52px;
+  margin-top: 4px;
+}
+
+.clip-item {
+  position: absolute;
+  top: 0;
+  height: 50px;
+  background: #202028 center/cover no-repeat;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.12);
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.clip-item.active {
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 10px rgba(255,90,60,0.3);
+}
+
+.clip-label {
+  position: absolute;
+  left: 6px;
+  bottom: 4px;
+  background: rgba(0,0,0,0.8);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.text-track {
+  position: relative;
+  height: 26px;
+  margin-top: 4px;
+}
+
+.text-item {
+  position: absolute;
+  top: 0;
+  height: 24px;
+  background: #2a1e36;
+  border: 1px solid #7c4cb0;
+  border-radius: 6px;
+  color: #f0d6ff;
+  font-size: 10px;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.text-item.active {
+  border: 2px solid var(--accent);
+}
+
+#playhead {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--accent);
+  pointer-events: none;
+  z-index: 10;
+  transform: translateX(-50%);
+}
+
+#playhead::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -5px;
+  border-style: solid;
+  border-width: 7px 6px 0 6px;
+  border-color: var(--accent) transparent transparent transparent;
+}
+
+#tab-bar {
+  display: flex;
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+#tab-bar::-webkit-scrollbar { display: none; }
+
+.tab-btn {
+  flex: none;
+  padding: 0 18px;
+  height: 44px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tab-btn.active {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+
+.panel-content {
+  display: none;
+  background: var(--panel);
+  padding: 14px;
+  max-height: 210px;
+  overflow-y: auto;
+}
+
+.panel-content.active {
+  display: block;
+}
+
+.action-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scrollbar-width: none;
+}
+
+.action-row::-webkit-scrollbar { display: none; }
+
+.tool-btn {
+  flex: none;
+  height: 38px;
+  padding: 0 16px;
+  background: var(--panel-light);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tool-btn.primary {
+  background: var(--accent);
+  color: #111;
+  border: none;
+}
+
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.control-group label {
+  width: 90px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.control-group input[type="range"] {
+  flex: 1;
+  -webkit-appearance: none;
+  background: transparent;
+  height: 28px;
+}
+
+.control-group input[type="range"]::-webkit-slider-runnable-track {
+  height: 5px;
+  background: var(--panel-light);
+  border-radius: 3px;
+}
+
+.control-group input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--text);
+  margin-top: -7.5px;
+  border: 2px solid var(--accent);
+}
+
+.input-text {
+  width: 100%;
+  background: var(--panel-light);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 10px 12px;
+  font-size: 13px;
+  outline: none;
+  margin-bottom: 10px;
+}
+
+#home-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  padding: calc(var(--safe-top) + 24px) 24px calc(var(--safe-bottom) + 24px);
+}
+
+.home-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 30px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-name {
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+}
+
+.projects-section {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.section-title {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 14px;
+}
+
+.start-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.btn-large {
+  width: 100%;
+  height: 54px;
+  border-radius: 12px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+  cursor: pointer;
+}
+
+.btn-large.highlight {
+  background: var(--accent);
+  color: #111;
+  border: none;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 20px;
+}
+
+.progress-box {
+  width: 85%;
+  max-width: 340px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px;
+  text-align: center;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 6px;
+  background: var(--panel-light);
+  border-radius: 3px;
+  margin: 18px 0;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--accent);
+  transition: width 0.1s linear;
+}
+
+video.preview-result {
+  max-width: 100%;
+  max-height: 60vh;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <header>
+    <div class="logo-group" id="btn-home">
+      <div class="logo-icon">N</div>
+      <input type="text" class="proj-title" id="proj-name-input" value="Proje 1">
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" id="btn-undo" title="Geri Al">
+        <svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5M4 9h10a6 6 0 010 12h-3"/></svg>
+      </button>
+      <button class="icon-btn" id="btn-redo" title="İleri Al">
+        <svg viewBox="0 0 24 24"><path d="M15 14l5-5-5-5M20 9H10a6 6 0 000 12h3"/></svg>
+      </button>
+      <button class="btn-primary" id="btn-export">Dışa Aktar</button>
+    </div>
+  </header>
+
+  <div id="stage">
+    <div id="canvas-container">
+      <canvas id="main-canvas" width="720" height="1280"></canvas>
+      <div class="aspect-badge">
+        <select id="aspect-ratio-select">
+          <option value="720,1280">9:16 (Dikey)</option>
+          <option value="1280,720">16:9 (Yatay)</option>
+          <option value="720,720">1:1 (Kare)</option>
+          <option value="720,900">4:5 (Gönderi)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div id="controls-bar">
+    <button class="play-btn" id="btn-play">▶</button>
+    <div class="time-display">
+      <span id="time-current">0:00.0</span>
+      <div id="time-total">0:00.0</div>
+    </div>
+  </div>
+
+  <div id="timeline-wrap">
+    <div id="playhead"></div>
+    <div id="timeline-scroll">
+      <div class="timeline-inner" id="timeline-inner">
+        <div class="timeline-ruler" id="ruler-container"></div>
+        <div class="timeline-track" id="video-track"></div>
+        <div class="text-track" id="text-track"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-bar">
+    <button class="tab-btn active" data-target="panel-edit">Düzenle</button>
+    <button class="tab-btn" data-target="panel-transform">Dönüştür</button>
+    <button class="tab-btn" data-target="panel-audio">Ses</button>
+    <button class="tab-btn" data-target="panel-filter">Filtre</button>
+    <button class="tab-btn" data-target="panel-text">Metin</button>
+    <button class="tab-btn" data-target="panel-speed">Hız</button>
+  </div>
+
+  <div class="panel-content active" id="panel-edit">
+    <div class="action-row">
+      <label class="tool-btn primary">
+        + Medya Ekle
+        <input type="file" id="input-media" accept="video/*" multiple hidden>
+      </label>
+      <button class="tool-btn" id="btn-split">Böl</button>
+      <button class="tool-btn" id="btn-duplicate">Kopyala</button>
+      <button class="tool-btn" id="btn-delete">Sil</button>
+      <button class="tool-btn" id="btn-move-left">← Taşı</button>
+      <button class="tool-btn" id="btn-move-right">Taşı →</button>
+    </div>
+    <div class="control-group">
+      <label>Ses Düzeyi</label>
+      <input type="range" id="slider-vol" min="0" max="1" step="0.05" value="1">
+    </div>
+  </div>
+
+  <div class="panel-content" id="panel-transform">
+    <div class="action-row">
+      <button class="tool-btn" id="btn-rotate">Döndür 90°</button>
+      <button class="tool-btn" id="btn-flip-h">Yatay Çevir</button>
+      <button class="tool-btn" id="btn-flip-v">Dikey Çevir</button>
+      <button class="tool-btn" id="btn-reset-transform">Sıfırla</button>
+    </div>
+    <div class="control-group">
+      <label>Ölçek (Zoom)</label>
+      <input type="range" id="slider-zoom" min="100" max="300" value="100">
+    </div>
+    <div class="control-group">
+      <label>Opaklık</label>
+      <input type="range" id="slider-opacity" min="0" max="100" value="100">
+    </div>
+  </div>
+
+  <div class="panel-content" id="panel-audio">
+    <div class="action-row">
+      <label class="tool-btn primary">
+        + Müzik
+        <input type="file" id="input-audio" accept="audio/*" hidden>
+      </label>
+      <button class="tool-btn" id="btn-remove-audio">Müzik Sil</button>
+    </div>
+    <div class="control-group">
+      <label>Müzik Sesi</label>
+      <input type="range" id="slider-music-vol" min="0" max="1" step="0.05" value="1">
+    </div>
+  </div>
+
+  <div class="panel-content" id="panel-filter">
+    <div class="action-row" id="filter-presets"></div>
+    <div class="control-group">
+      <label>Parlaklık</label>
+      <input type="range" id="slider-bright" min="50" max="150" value="100">
+    </div>
+    <div class="control-group">
+      <label>Kontrast</label>
+      <input type="range" id="slider-contrast" min="50" max="150" value="100">
+    </div>
+    <div class="control-group">
+      <label>Doygunluk</label>
+      <input type="range" id="slider-saturate" min="0" max="200" value="100">
+    </div>
+  </div>
+
+  <div class="panel-content" id="panel-text">
+    <div class="action-row">
+      <button class="tool-btn primary" id="btn-add-text">+ Metin Ekle</button>
+      <button class="tool-btn" id="btn-del-text">Sil</button>
+      <label class="tool-btn">
+        SRT İçe Aktar
+        <input type="file" id="input-srt" accept=".srt" hidden>
+      </label>
+    </div>
+    <input type="text" class="input-text" id="input-text-content" placeholder="Metin içeriği...">
+    <div class="control-group">
+      <label>Metin Boyutu</label>
+      <input type="range" id="slider-text-size" min="20" max="120" value="48">
+    </div>
+  </div>
+
+  <div class="panel-content" id="panel-speed">
+    <div class="action-row" id="speed-presets"></div>
+    <div class="control-group">
+      <label>Hız Katsayısı</label>
+      <input type="range" id="slider-speed" min="0.2" max="5" step="0.1" value="1">
+    </div>
+  </div>
+</div>
+
+<div id="home-screen">
+  <div class="home-header">
+    <div class="brand">
+      <div class="logo-icon" style="width:34px;height:34px;font-size:18px">N</div>
+      <span class="brand-name">NASHI</span>
+    </div>
+  </div>
+  <div class="projects-section">
+    <div class="section-title">Projelerim</div>
+  </div>
+  <div class="start-actions">
+    <label class="btn-large highlight">
+      Yeni Proje Başlat
+      <input type="file" id="home-input-media" accept="video/*" multiple hidden>
+    </label>
+    <button class="btn-large" id="btn-continue-project" style="display:none">Mevcut Projeye Dön →</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="export-modal" style="display:none">
+  <div class="progress-box">
+    <div style="font-weight:700;font-size:16px;margin-bottom:8px">Video Dışa Aktarılıyor</div>
+    <div style="font-size:12px;color:var(--text-muted)">Lütfen sekmeden ayrılmayın...</div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="export-progress"></div>
+    </div>
+    <button class="tool-btn" id="btn-cancel-export" style="margin:0 auto">İptal Et</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="result-modal" style="display:none">
+  <video class="preview-result" id="result-video" controls playsinline></video>
+  <div style="display:flex;gap:10px">
+    <a class="btn-primary" id="btn-download-video" download="nashi_export.mp4" style="text-decoration:none">Kaydet / İndir</a>
+    <button class="tool-btn" id="btn-close-result">Kapat</button>
+  </div>
+</div>
+
+<script>
+const STATE = {
+  clips: [],
+  texts: [],
+  selectedClip: -1,
+  selectedText: -1,
+  currentTime: 0,
+  isPlaying: false,
+  aspectRatio: [720, 1280],
+  historyUndo: [],
+  historyRedo: [],
+  activeVideoIndex: -1,
+  pxPerSec: 40
+};
+
+const canvas = document.getElementById('main-canvas');
+const ctx = canvas.getContext('2d', { willReadFrequently: true });
+const videoPlayer = document.createElement('video');
+videoPlayer.playsInline = true;
+videoPlayer.muted = true;
+videoPlayer.preload = 'auto';
+
+const formatTime = t => {
+  const m = Math.floor(t / 60);
+  const s = (t % 60).toFixed(1).padStart(4, '0');
+  return `${m}:${s}`;
+};
+
+const getClipLength = c => (c.out - c.in) / c.speed;
+const getTotalDuration = () => STATE.clips.reduce((acc, c) => acc + getClipLength(c), 0);
+const getClipOffset = idx => STATE.clips.slice(0, idx).reduce((acc, c) => acc + getClipLength(c), 0);
+
+function pushHistory() {
+  STATE.historyRedo = [];
+  STATE.historyUndo.push(JSON.stringify({ clips: STATE.clips, texts: STATE.texts }));
+  if (STATE.historyUndo.length > 25) STATE.historyUndo.shift();
+}
+
+function drawFrame() {
+  const [w, h] = STATE.aspectRatio;
+  if (canvas.width !== w || canvas.height !== h) {
+    canvas.width = w;
+    canvas.height = h;
+  }
+
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, w, h);
+
+  if (STATE.activeVideoIndex >= 0 && STATE.clips[STATE.activeVideoIndex]) {
+    const c = STATE.clips[STATE.activeVideoIndex];
+    if (videoPlayer.videoWidth) {
+      const vw = videoPlayer.videoWidth;
+      const vh = videoPlayer.videoHeight;
+      const scale = Math.min(w / vw, h / vh) * (c.transform.zoom / 100);
+      const cx = w / 2;
+      const cy = h / 2;
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate((c.transform.rotate * Math.PI) / 180);
+      ctx.scale(c.transform.flipH ? -1 : 1, c.transform.flipV ? -1 : 1);
+      ctx.globalAlpha = c.transform.opacity / 100;
+
+      if (ctx.filter !== undefined) {
+        ctx.filter = `brightness(${c.filter.brightness}%) contrast(${c.filter.contrast}%) saturate(${c.filter.saturate}%)`;
+      }
+
+      ctx.drawImage(videoPlayer, (-vw * scale) / 2, (-vh * scale) / 2, vw * scale, vh * scale);
+      ctx.restore();
+    }
+  }
+
+  STATE.texts.forEach(t => {
+    if (STATE.currentTime >= t.start && STATE.currentTime <= t.start + t.duration) {
+      ctx.save();
+      ctx.font = `bold ${t.size}px -apple-system, sans-serif`;
+      ctx.fillStyle = t.color;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(t.content, (w * t.x) / 100, (h * t.y) / 100);
+      ctx.restore();
+    }
+  });
+}
+
+async function locateAndSeek(t) {
+  STATE.currentTime = Math.max(0, Math.min(t, getTotalDuration()));
+  let acc = 0;
+  let targetIdx = -1;
+  let localTime = 0;
+
+  for (let i = 0; i < STATE.clips.length; i++) {
+    const len = getClipLength(STATE.clips[i]);
+    if (STATE.currentTime <= acc + len || i === STATE.clips.length - 1) {
+      targetIdx = i;
+      localTime = (STATE.currentTime - acc) * STATE.clips[i].speed;
+      break;
+    }
+    acc += len;
+  }
+
+  if (targetIdx !== -1) {
+    const clip = STATE.clips[targetIdx];
+    STATE.activeVideoIndex = targetIdx;
+    if (videoPlayer.src !== clip.url) {
+      videoPlayer.src = clip.url;
+      await new Promise(r => { videoPlayer.onloadeddata = r; videoPlayer.load(); });
+    }
+    videoPlayer.currentTime = clip.in + localTime;
+    videoPlayer.playbackRate = clip.speed;
+    videoPlayer.volume = clip.volume;
+  } else {
+    STATE.activeVideoIndex = -1;
+  }
+
+  drawFrame();
+  updateTimelineUI();
+}
+
+function updateTimelineUI() {
+  document.getElementById('time-current').textContent = formatTime(STATE.currentTime);
+  document.getElementById('time-total').textContent = formatTime(getTotalDuration());
+
+  const track = document.getElementById('video-track');
+  track.innerHTML = '';
+
+  STATE.clips.forEach((c, idx) => {
+    const width = Math.max(getClipLength(c) * STATE.pxPerSec, 30);
+    const el = document.createElement('div');
+    el.className = `clip-item ${idx === STATE.selectedClip ? 'active' : ''}`;
+    el.style.width = `${width}px`;
+    el.style.left = `${getClipOffset(idx) * STATE.pxPerSec}px`;
+    el.style.backgroundImage = `url(${c.thumb})`;
+    el.innerHTML = `<span class="clip-label">${getClipLength(c).toFixed(1)}s</span>`;
+    
+    el.onclick = () => {
+      STATE.selectedClip = idx;
+      updateTimelineUI();
+      syncPanelControls();
+    };
+    track.appendChild(el);
+  });
+
+  const textTrack = document.getElementById('text-track');
+  textTrack.innerHTML = '';
+  STATE.texts.forEach((t, idx) => {
+    const el = document.createElement('div');
+    el.className = `text-item ${idx === STATE.selectedText ? 'active' : ''}`;
+    el.style.left = `${t.start * STATE.pxPerSec}px`;
+    el.style.width = `${t.duration * STATE.pxPerSec}px`;
+    el.textContent = t.content;
+    el.onclick = () => {
+      STATE.selectedText = idx;
+      updateTimelineUI();
+      syncPanelControls();
+    };
+    textTrack.appendChild(el);
+  });
+
+  const scrollLeft = STATE.currentTime * STATE.pxPerSec;
+  const scrollWrap = document.getElementById('timeline-scroll');
+  scrollWrap.scrollLeft = scrollLeft;
+}
+
+function syncPanelControls() {
+  const c = STATE.clips[STATE.selectedClip];
+  if (c) {
+    document.getElementById('slider-vol').value = c.volume;
+    document.getElementById('slider-zoom').value = c.transform.zoom;
+    document.getElementById('slider-opacity').value = c.transform.opacity;
+    document.getElementById('slider-bright').value = c.filter.brightness;
+    document.getElementById('slider-contrast').value = c.filter.contrast;
+    document.getElementById('slider-saturate').value = c.filter.saturate;
+    document.getElementById('slider-speed').value = c.speed;
+  }
+}
+
+const generateThumb = url => new Promise(resolve => {
+  const v = document.createElement('video');
+  v.src = url;
+  v.muted = true;
+  v.playsInline = true;
+  v.onloadeddata = () => { v.currentTime = Math.min(0.5, v.duration / 2); };
+  v.onseeked = () => {
+    const c = document.createElement('canvas');
+    c.width = 100; c.height = 60;
+    c.getContext('2d').drawImage(v, 0, 0, 100, 60);
+    resolve(c.toDataURL('image/jpeg', 0.6));
+  };
+  v.onerror = () => resolve('');
+});
+
+document.getElementById('input-media').onchange = async (e) => {
+  pushHistory();
+  for (const file of e.target.files) {
+    const url = URL.createObjectURL(file);
+    const tempV = document.createElement('video');
+    tempV.src = url;
+    tempV.muted = true;
+    tempV.playsInline = true;
+    await new Promise(r => tempV.onloadedmetadata = r);
+
+    STATE.clips.push({
+      id: Math.random().toString(36).substr(2, 9),
+      url,
+      dur: tempV.duration,
+      in: 0,
+      out: tempV.duration,
+      speed: 1,
+      volume: 1,
+      thumb: await generateThumb(url),
+      transform: { zoom: 100, rotate: 0, flipH: false, flipV: false, opacity: 100 },
+      filter: { brightness: 100, contrast: 100, saturate: 100 }
+    });
+  }
+  STATE.selectedClip = STATE.clips.length - 1;
+  await locateAndSeek(STATE.currentTime);
+};
+
+document.getElementById('btn-play').onclick = () => {
+  if (STATE.isPlaying) {
+    STATE.isPlaying = false;
+    videoPlayer.pause();
+    document.getElementById('btn-play').textContent = '▶';
+  } else {
+    STATE.isPlaying = true;
+    videoPlayer.play();
+    document.getElementById('btn-play').textContent = '❚❚';
+    playLoop();
+  }
+};
+
+function playLoop() {
+  if (!STATE.isPlaying) return;
+  STATE.currentTime += 0.033;
+  if (STATE.currentTime >= getTotalDuration()) {
+    STATE.currentTime = 0;
+    STATE.isPlaying = false;
+    document.getElementById('btn-play').textContent = '▶';
+  }
+  locateAndSeek(STATE.currentTime);
+  requestAnimationFrame(playLoop);
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel-content').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.target).classList.add('active');
+  };
+});
+
+document.getElementById('btn-home').onclick = () => {
+  document.getElementById('home-screen').style.display = 'flex';
+};
+
+document.getElementById('home-input-media').onchange = async (e) => {
+  document.getElementById('home-screen').style.display = 'none';
+  document.getElementById('btn-continue-project').style.display = 'block';
+  await document.getElementById('input-media').onchange(e);
+};
+
+document.getElementById('btn-continue-project').onclick = () => {
+  document.getElementById('home-screen').style.display = 'none';
+};
+
+updateTimelineUI();
+drawFrame();
+</script>
+</body>
+</html>
